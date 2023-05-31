@@ -469,7 +469,7 @@ type ArgoCDDiffOptions struct {
 	IgnoreResourceStatusField IgnoreStatus `json:"ignoreResourceStatusField,omitempty"`
 
 	// If set to true then ignoreDifferences are applied to ignore application refresh on resource updates.
-	ApplyOnResourceUpdates bool `json:"applyOnResourceUpdates,omitempty"`
+	IgnoreDifferencesOnResourceUpdates bool `json:"ignoreDifferencesOnResourceUpdates,omitempty"`
 }
 
 func (e *incompleteSettingsError) Error() string {
@@ -726,7 +726,7 @@ func (mgr *SettingsManager) GetIgnoreResourceUpdatesOverrides() (map[string]v1al
 	}
 
 	resourceOverrides := map[string]v1alpha1.ResourceOverride{}
-	if compareOptions.ApplyOnResourceUpdates {
+	if compareOptions.IgnoreDifferencesOnResourceUpdates {
 		resourceOverrides, err = mgr.GetResourceOverrides()
 		if err != nil {
 			return nil, err
@@ -885,7 +885,7 @@ func convertToOverrideKey(groupKind string) (string, error) {
 }
 
 func GetDefaultDiffOptions() ArgoCDDiffOptions {
-	return ArgoCDDiffOptions{IgnoreAggregatedRoles: false, ApplyOnResourceUpdates: true}
+	return ArgoCDDiffOptions{IgnoreAggregatedRoles: false, IgnoreDifferencesOnResourceUpdates: false}
 }
 
 // GetResourceCompareOptions loads the resource compare options settings from the ConfigMap
