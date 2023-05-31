@@ -374,7 +374,7 @@ func TestGetResourceOverrides_with_splitted_keys(t *testing.T) {
         - bar`,
 			"resource.customizations.ignoreDifferences.apps_Deployment": `jqPathExpressions:
         - bar`,
-			"resource.customizations.ignoreDifferences.all": `managedFieldsManagers: 
+			"resource.customizations.ignoreDifferences.all": `managedFieldsManagers:
         - kube-controller-manager
         - argo-rollouts`,
 		}
@@ -489,6 +489,26 @@ func TestGetResourceCompareOptions(t *testing.T) {
 		assert.False(t, compareOptions.IgnoreAggregatedRoles)
 	}
 
+	// ignoreDifferencesOnResourceUpdates is true
+	{
+		_, settingsManager := fixtures(map[string]string{
+			"resource.compareoptions": "ignoreDifferencesOnResourceUpdates: true",
+		})
+		compareOptions, err := settingsManager.GetResourceCompareOptions()
+		assert.NoError(t, err)
+		assert.True(t, compareOptions.IgnoreDifferencesOnResourceUpdates)
+	}
+
+	// ignoreDifferencesOnResourceUpdates is false
+	{
+		_, settingsManager := fixtures(map[string]string{
+			"resource.compareoptions": "ignoreDifferencesOnResourceUpdates: false",
+		})
+		compareOptions, err := settingsManager.GetResourceCompareOptions()
+		assert.NoError(t, err)
+		assert.False(t, compareOptions.IgnoreDifferencesOnResourceUpdates)
+	}
+
 	// The empty resource.compareoptions should result in default being returned
 	{
 		_, settingsManager := fixtures(map[string]string{
@@ -498,6 +518,7 @@ func TestGetResourceCompareOptions(t *testing.T) {
 		defaultOptions := GetDefaultDiffOptions()
 		assert.NoError(t, err)
 		assert.Equal(t, defaultOptions.IgnoreAggregatedRoles, compareOptions.IgnoreAggregatedRoles)
+		assert.Equal(t, defaultOptions.IgnoreDifferencesOnResourceUpdates, compareOptions.IgnoreDifferencesOnResourceUpdates)
 	}
 
 	// resource.compareoptions not defined - should result in default being returned
@@ -507,6 +528,7 @@ func TestGetResourceCompareOptions(t *testing.T) {
 		defaultOptions := GetDefaultDiffOptions()
 		assert.NoError(t, err)
 		assert.Equal(t, defaultOptions.IgnoreAggregatedRoles, compareOptions.IgnoreAggregatedRoles)
+		assert.Equal(t, defaultOptions.IgnoreDifferencesOnResourceUpdates, compareOptions.IgnoreDifferencesOnResourceUpdates)
 	}
 }
 
