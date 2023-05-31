@@ -710,7 +710,7 @@ func TestManifestHash(t *testing.T) {
 
 	expected := hash(string(data))
 
-	hash, err := generateManifestHash(manifest, ignores)
+	hash, err := generateManifestHash(manifest, ignores, nil)
 	assert.Equal(t, expected, hash)
 	assert.Nil(t, err)
 }

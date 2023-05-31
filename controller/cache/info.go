@@ -381,9 +381,8 @@ func populateHostNodeInfo(un *unstructured.Unstructured, res *ResourceInfo) {
 	}
 }
 
-func generateManifestHash(un *unstructured.Unstructured, ignores []v1alpha1.ResourceIgnoreDifferences) (string, error) {
-	ignores = append(ignores, removeMeAndReplaceByConfig()...)
-	normalizer, err := normalizers.NewIgnoreNormalizer(ignores, nil)
+func generateManifestHash(un *unstructured.Unstructured, ignores []v1alpha1.ResourceIgnoreDifferences, overrides map[string]v1alpha1.ResourceOverride) (string, error) {
+	normalizer, err := normalizers.NewIgnoreNormalizer(ignores, overrides)
 	if err != nil {
 		return "", fmt.Errorf("error creating normalizer: %w", err)
 	}
@@ -400,14 +399,4 @@ func generateManifestHash(un *unstructured.Unstructured, ignores []v1alpha1.Reso
 	}
 	hash := strconv.FormatUint(xxhash.Sum64(data), 16)
 	return hash, nil
-}
-
-func removeMeAndReplaceByConfig() []v1alpha1.ResourceIgnoreDifferences {
-	return []v1alpha1.ResourceIgnoreDifferences{
-		{
-			Group:        "*",
-			Kind:         "*",
-			JSONPointers: []string{"/metadata/resourceVersion"},
-		},
-	}
 }
