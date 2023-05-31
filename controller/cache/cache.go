@@ -148,6 +148,8 @@ type ResourceInfo struct {
 	PodInfo *PodInfo
 	// NodeInfo is available for nodes only
 	NodeInfo *NodeInfo
+
+	manifestHash *string
 }
 
 func NewLiveStateCache(
@@ -308,6 +310,10 @@ func skipAppRequeuing(key kube.ResourceKey) bool {
 	return ignoredRefreshResources[key.Group+"/"+key.Kind]
 }
 
+func skipResourceUpdate(oldInfo, newInfo *ResourceInfo) bool {
+	return oldInfo != nil && newInfo != nil && oldInfo.manifestHash != nil && newInfo.manifestHash != nil && oldInfo.manifestHash == newInfo.manifestHash
+}
+
 // isRetryableError is a helper method to see whether an error
 // returned from the dynamic client is potentially retryable.
 func isRetryableError(err error) bool {
@@ -401,6 +407,13 @@ func (c *liveStateCache) getCluster(server string) (clustercache.ClusterCache, e
 		clustercache.SetPopulateResourceInfoHandler(func(un *unstructured.Unstructured, isRoot bool) (interface{}, bool) {
 			res := &ResourceInfo{}
 			populateNodeInfo(un, res)
+			//TODO get ignores configs
+			hash, err := generateManifestHash(un, nil)
+			if err != nil {
+				log.Errorf("Failed to generate manifest hash: %v", err)
+			} else {
+				res.manifestHash = &hash
+			}
 			c.lock.RLock()
 			cacheSettings := c.cacheSettings
 			c.lock.RUnlock()
@@ -430,6 +443,22 @@ func (c *liveStateCache) getCluster(server string) (clustercache.ClusterCache, e
 		} else {
 			ref = oldRes.Ref
 		}
+
+		if oldRes != nil && newRes != nil && skipResourceUpdate(resInfo(oldRes), resInfo(newRes)) {
+			// Additional check for debug level so we don't need to evaluate the
+			// format string in case of non-debug scenarios
+			if log.GetLevel() >= log.DebugLevel {
+				var resKey string
+				if ref.Namespace != "" {
+					resKey = ref.Namespace + "/" + ref.Name
+				} else {
+					resKey = "(cluster-scoped)/" + ref.Name
+				}
+				log.Debugf("Ignoring change in cluster of object %s of type %s/%s", resKey, ref.APIVersion, ref.Kind)
+			}
+			return
+		}
+
 		for _, r := range []*clustercache.Resource{newRes, oldRes} {
 			if r == nil {
 				continue
