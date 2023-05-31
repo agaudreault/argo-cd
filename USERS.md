@@ -81,6 +81,7 @@ Currently, the following organizations are **officially** using Argo CD:
 1. [Glovo](https://www.glovoapp.com)
 1. [GMETRI](https://gmetri.com/)
 1. [Gojek](https://www.gojek.io/)
+1. [GoTo](https://www.goto.com/)
 1. [Greenpass](https://www.greenpass.com.br/)
 1. [Gridfuse](https://gridfuse.com/)
 1. [Grupo MasMovil](https://grupomasmovil.com/en/)
