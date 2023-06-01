@@ -317,7 +317,7 @@ func skipAppRequeuing(key kube.ResourceKey) bool {
 }
 
 func skipResourceUpdate(oldInfo, newInfo *ResourceInfo) bool {
-	return oldInfo != nil && newInfo != nil && oldInfo.manifestHash != nil && newInfo.manifestHash != nil && oldInfo.manifestHash == newInfo.manifestHash
+	return oldInfo != nil && newInfo != nil && oldInfo.manifestHash != nil && newInfo.manifestHash != nil && *oldInfo.manifestHash == *newInfo.manifestHash
 }
 
 // isRetryableError is a helper method to see whether an error
