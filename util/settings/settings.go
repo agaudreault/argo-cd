@@ -748,6 +748,8 @@ func (mgr *SettingsManager) GetIgnoreResourceUpdatesOverrides() (map[string]v1al
 	}
 
 	addIgnoreDiffItemOverrideToGK(resourceOverrides, "*/*", "/metadata/resourceVersion")
+	addIgnoreDiffItemOverrideToGK(resourceOverrides, "*/*", "/metadata/generation")
+	addIgnoreDiffItemOverrideToGK(resourceOverrides, "*/*", "/metadata/managedFields")
 	addIgnoreDiffItemOverrideToGK(resourceOverrides, "argoproj.io/Application", "/status/reconciledAt")
 
 	return resourceOverrides, nil
