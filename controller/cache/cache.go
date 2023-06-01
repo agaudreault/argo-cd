@@ -417,12 +417,6 @@ func (c *liveStateCache) getCluster(server string) (clustercache.ClusterCache, e
 			cacheSettings := c.cacheSettings
 			c.lock.RUnlock()
 
-			hash, err := generateManifestHash(un, nil, cacheSettings.resourceOverrides)
-			if err != nil {
-				log.Errorf("Failed to generate manifest hash: %v", err)
-			} else {
-				res.manifestHash = &hash
-			}
 			res.Health, _ = health.GetResourceHealth(un, cacheSettings.clusterSettings.ResourceHealthOverride)
 
 			appName := c.resourceTracking.GetAppName(un, cacheSettings.appInstanceLabelKey, cacheSettings.trackingMethod)
@@ -430,6 +424,18 @@ func (c *liveStateCache) getCluster(server string) (clustercache.ClusterCache, e
 				res.AppName = appName
 			}
 			gvk := un.GroupVersionKind()
+
+			// Only hash if the resource belongs to an app.
+			if appName != "" {
+				hash, err := generateManifestHash(un, nil, cacheSettings.resourceOverrides)
+				if err != nil {
+					log.Errorf("Failed to generate manifest hash: %v", err)
+				} else {
+					res.manifestHash = &hash
+				}
+			} else {
+				log.Debugf("Skipping hash for resource %s of type %s/%s", un.GetName(), gvk.Version, gvk.Kind)
+			}
 
 			// edge case. we do not label CRDs, so they miss the tracking label we inject. But we still
 			// want the full resource to be available in our cache (to diff), so we store all CRDs
