@@ -478,10 +478,10 @@ func mergemaps(mapA map[string]string, mapB map[string]string) map[string]string
 }
 
 func TestGetIgnoreResourceUpdatesOverrides(t *testing.T) {
-	ignoreResourceVersion := v1alpha1.ResourceOverride{IgnoreDifferences: v1alpha1.OverrideIgnoreDiff{
-		JSONPointers: []string{"/metadata/resourceVersion"},
+	allDefault := v1alpha1.ResourceOverride{IgnoreDifferences: v1alpha1.OverrideIgnoreDiff{
+		JSONPointers: []string{"/metadata/resourceVersion", "/metadata/generation", "/metadata/managedFields"},
 	}}
-	ignoreAppReconciledAt := v1alpha1.ResourceOverride{IgnoreDifferences: v1alpha1.OverrideIgnoreDiff{
+	appDefault := v1alpha1.ResourceOverride{IgnoreDifferences: v1alpha1.OverrideIgnoreDiff{
 		JSONPointers: []string{"/status/reconciledAt"},
 	}}
 	allGK := "*/*"
@@ -509,10 +509,10 @@ func TestGetIgnoreResourceUpdatesOverrides(t *testing.T) {
 	// default overrides should always be present
 	allOverrides := overrides[allGK]
 	assert.NotNil(t, allOverrides)
-	assert.Equal(t, ignoreResourceVersion, allOverrides)
+	assert.Equal(t, allDefault, allOverrides)
 	appOverrides := overrides[appGK]
 	assert.NotNil(t, allOverrides)
-	assert.Equal(t, ignoreAppReconciledAt, appOverrides)
+	assert.Equal(t, appDefault, appOverrides)
 
 	// without ignoreDifferencesOnResourceUpdates, only ignoreResourceUpdates should be added
 	assert.NotNil(t, overrides["admissionregistration.k8s.io/MutatingWebhookConfiguration"])
