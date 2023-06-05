@@ -28,6 +28,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/argoproj/argo-cd/v2/controller/metrics"
+	"github.com/argoproj/argo-cd/v2/pkg/apis/application"
 	appv1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	"github.com/argoproj/argo-cd/v2/util/argo"
 	"github.com/argoproj/argo-cd/v2/util/db"
@@ -320,6 +321,15 @@ func skipResourceUpdate(oldInfo, newInfo *ResourceInfo) bool {
 	return oldInfo != nil && newInfo != nil && oldInfo.manifestHash != nil && newInfo.manifestHash != nil && *oldInfo.manifestHash == *newInfo.manifestHash
 }
 
+func shouldHashManifest(appName string, gvk schema.GroupVersionKind) bool {
+	// Only hash if the resource belongs to an app.
+	// Best      - Only hash for resources that are part of an app or their dependencies
+	// (current) - Only hash for resources that are part of an app + all apps that might be from an ApplicationSet
+	// Orphan    - If orphan is enabled, hash should be made on all resource of that namespace and a config to disable it
+	// Worst     - Hash all resources watched by Argo
+	return appName != "" || (gvk.Group == application.Group && gvk.Kind == application.ApplicationKind)
+}
+
 // isRetryableError is a helper method to see whether an error
 // returned from the dynamic client is potentially retryable.
 func isRetryableError(err error) bool {
@@ -425,8 +435,7 @@ func (c *liveStateCache) getCluster(server string) (clustercache.ClusterCache, e
 			}
 			gvk := un.GroupVersionKind()
 
-			// Only hash if the resource belongs to an app.
-			if appName != "" {
+			if shouldHashManifest(appName, gvk) {
 				hash, err := generateManifestHash(un, nil, cacheSettings.resourceOverrides)
 				if err != nil {
 					log.Errorf("Failed to generate manifest hash: %v", err)
@@ -434,6 +443,7 @@ func (c *liveStateCache) getCluster(server string) (clustercache.ClusterCache, e
 					res.manifestHash = &hash
 				}
 			} else {
+				// TODO: remove debug log
 				log.Debugf("Skipping hash for resource %s of type %s/%s", un.GetName(), gvk.Version, gvk.Kind)
 			}
 
