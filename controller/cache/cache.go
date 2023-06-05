@@ -442,9 +442,6 @@ func (c *liveStateCache) getCluster(server string) (clustercache.ClusterCache, e
 				} else {
 					res.manifestHash = &hash
 				}
-			} else {
-				// TODO: remove debug log
-				log.Debugf("Skipping hash for resource %s of type %s/%s", un.GetName(), gvk.Version, gvk.Kind)
 			}
 
 			// edge case. we do not label CRDs, so they miss the tracking label we inject. But we still
