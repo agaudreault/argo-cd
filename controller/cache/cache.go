@@ -593,14 +593,10 @@ func (c *liveStateCache) watchSettings(ctx context.Context) {
 				continue
 			}
 
-			c.lock.Lock()
-			needInvalidate := false
-			if !reflect.DeepEqual(c.cacheSettings, *nextCacheSettings) {
-				c.cacheSettings = *nextCacheSettings
-				needInvalidate = true
-			}
-			c.lock.Unlock()
-			if needInvalidate {
+			c.lock.RLock()
+			currentSettings := c.cacheSettings
+			c.lock.RUnlock()
+			if !reflect.DeepEqual(currentSettings, *nextCacheSettings) {
 				c.invalidate(*nextCacheSettings)
 			}
 		case <-ctx.Done():
