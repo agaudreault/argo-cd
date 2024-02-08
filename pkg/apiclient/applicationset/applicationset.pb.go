@@ -214,6 +214,7 @@ func (m *ApplicationSetResponse) GetApplicationset() *v1alpha1.ApplicationSet {
 type ApplicationSetCreateRequest struct {
 	Applicationset       *v1alpha1.ApplicationSet `protobuf:"bytes,1,opt,name=applicationset,proto3" json:"applicationset,omitempty"`
 	Upsert               bool                     `protobuf:"varint,2,opt,name=upsert,proto3" json:"upsert,omitempty"`
+	DryRun               bool                     `protobuf:"varint,3,opt,name=dryRun,proto3" json:"dryRun,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                 `json:"-"`
 	XXX_unrecognized     []byte                   `json:"-"`
 	XXX_sizecache        int32                    `json:"-"`
@@ -262,6 +263,13 @@ func (m *ApplicationSetCreateRequest) GetApplicationset() *v1alpha1.ApplicationS
 func (m *ApplicationSetCreateRequest) GetUpsert() bool {
 	if m != nil {
 		return m.Upsert
+	}
+	return false
+}
+
+func (m *ApplicationSetCreateRequest) GetDryRun() bool {
+	if m != nil {
+		return m.DryRun
 	}
 	return false
 }
@@ -826,6 +834,16 @@ func (m *ApplicationSetCreateRequest) MarshalToSizedBuffer(dAtA []byte) (int, er
 		i -= len(m.XXX_unrecognized)
 		copy(dAtA[i:], m.XXX_unrecognized)
 	}
+	if m.DryRun {
+		i--
+		if m.DryRun {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x18
+	}
 	if m.Upsert {
 		i--
 		if m.Upsert {
@@ -1021,6 +1039,9 @@ func (m *ApplicationSetCreateRequest) Size() (n int) {
 		n += 1 + l + sovApplicationset(uint64(l))
 	}
 	if m.Upsert {
+		n += 2
+	}
+	if m.DryRun {
 		n += 2
 	}
 	if m.XXX_unrecognized != nil {
@@ -1541,6 +1562,26 @@ func (m *ApplicationSetCreateRequest) Unmarshal(dAtA []byte) error {
 				}
 			}
 			m.Upsert = bool(v != 0)
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DryRun", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowApplicationset
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.DryRun = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := skipApplicationset(dAtA[iNdEx:])
