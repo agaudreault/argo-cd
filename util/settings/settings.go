@@ -692,11 +692,10 @@ func (mgr *SettingsManager) updateConfigMap(callback func(*apiv1.ConfigMap) erro
 				Name: common.ArgoCDConfigMapName,
 			},
 		}
+		argoCDCM.Data = make(map[string]string)
 		createCM = true
 	}
-	if argoCDCM.Data == nil {
-		argoCDCM.Data = make(map[string]string)
-	}
+
 	beforeUpdate := argoCDCM.DeepCopy()
 	err = callback(argoCDCM)
 	if err != nil {
@@ -730,10 +729,11 @@ func (mgr *SettingsManager) getConfigMap() (*apiv1.ConfigMap, error) {
 	if err != nil {
 		return nil, err
 	}
-	if argoCDCM.Data == nil {
-		argoCDCM.Data = make(map[string]string)
+	cmCopy := argoCDCM.DeepCopy()
+	if cmCopy.Data == nil {
+		cmCopy.Data = make(map[string]string)
 	}
-	return argoCDCM, err
+	return cmCopy, err
 }
 
 // Returns the ConfigMap with the given name from the cluster.
