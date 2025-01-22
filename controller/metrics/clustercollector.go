@@ -61,7 +61,7 @@ type clusterCollector struct {
 
 func (c *clusterCollector) Run(ctx context.Context) {
 	// FIXME: complains about SA1015
-	// nolint:staticcheck
+	//nolint:staticcheck
 	tick := time.Tick(metricsCollectionInterval)
 	for {
 		select {
@@ -87,7 +87,6 @@ func (c *clusterCollector) Describe(ch chan<- *prometheus.Desc) {
 }
 
 func (c *clusterCollector) Collect(ch chan<- prometheus.Metric) {
-
 	now := time.Now()
 	for _, c := range c.info {
 		defaultValues := []string{c.Server}
