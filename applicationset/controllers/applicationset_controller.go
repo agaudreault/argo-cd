@@ -311,7 +311,7 @@ func (r *ApplicationSetReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 			_ = r.setApplicationSetStatusCondition(ctx,
 				&applicationSetInfo,
 				argov1alpha1.ApplicationSetCondition{
-					Type:    argov1alpha1.ApplicationSetConditionResourcesUpToDate,
+					Type:    argov1alpha1.ApplicationSetConditionErrorOccurred,
 					Message: err.Error(),
 					Reason:  argov1alpha1.ApplicationSetReasonDeleteApplicationError,
 					Status:  argov1alpha1.ApplicationSetConditionStatusFalse,
