@@ -221,10 +221,22 @@ func (r *ApplicationSetReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 				return ctrl.Result{}, fmt.Errorf("failed to clear previous AppSet application statuses for %v: %w", applicationSetInfo.Name, err)
 			}
 		} else if isRollingSyncStrategy(&applicationSetInfo) {
-			appSyncMap, err = r.performProgressiveSyncs(ctx, logCtx, applicationSetInfo, currentApplications, generatedApplications)
+			// The appset uses progressive sync with `RollingSync` strategy
+			for _, app := range currentApplications {
+				appMap[app.Name] = app
+			}
+
+			appSyncMap, err = r.performProgressiveSyncs(ctx, logCtx, applicationSetInfo, currentApplications, generatedApplications, appMap)
 			if err != nil {
 				return ctrl.Result{}, fmt.Errorf("failed to perform progressive sync reconciliation for application set: %w", err)
 			}
+		}
+	}
+
+	var validApps []argov1alpha1.Application
+	for i, app := range generatedApplications {
+		if validateErrors[app.QualifiedName()] == nil {
+			validApps = append(validApps, generatedApplications[i])
 		}
 	}
 
@@ -305,7 +317,6 @@ func (r *ApplicationSetReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	}
 
 	if utils.DefaultPolicy(applicationSetInfo.Spec.SyncPolicy, r.Policy, r.EnablePolicyOverride).AllowDelete() {
-		// Delete the generatedApplications instead of the validApps because we want to be able to delete applications in error/invalid state
 		err = r.deleteInCluster(ctx, logCtx, applicationSetInfo, generatedApplications)
 		if err != nil {
 			_ = r.setApplicationSetStatusCondition(ctx,
@@ -495,7 +506,6 @@ func (r *ApplicationSetReconciler) validateGeneratedApplications(ctx context.Con
 			continue
 		}
 		namesSet[app.Name] = true
-
 		appProject := &argov1alpha1.AppProject{}
 		err := r.Get(ctx, types.NamespacedName{Name: app.Spec.Project, Namespace: r.ArgoCDNamespace}, appProject)
 		if err != nil {
@@ -1256,9 +1266,9 @@ func (r *ApplicationSetReconciler) updateApplicationSetApplicationStatusConditio
 	completedWaves := map[string]bool{}
 	for _, appStatus := range applicationSet.Status.ApplicationStatus {
 		if v, ok := completedWaves[appStatus.Step]; !ok {
-			completedWaves[appStatus.Step] = appStatus.Status == argov1alpha1.ProgressiveSyncHealthy
+			completedWaves[appStatus.Step] = appStatus.Status == "Healthy"
 		} else {
-			completedWaves[appStatus.Step] = v && appStatus.Status == argov1alpha1.ProgressiveSyncHealthy
+			completedWaves[appStatus.Step] = v && appStatus.Status == "Healthy"
 		}
 	}
 
@@ -1299,7 +1309,6 @@ func (r *ApplicationSetReconciler) updateApplicationSetApplicationStatusConditio
 			}, true,
 		)
 	}
-
 	return applicationSet.Status.Conditions
 }
 
