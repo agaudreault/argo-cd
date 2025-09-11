@@ -95,8 +95,8 @@ jobs:
     runs-on: ubuntu-22.04
     env:
       GORELEASER_MAKE_LATEST: ${{ needs.setup-variables.outputs.is_latest_release }}
-    outputs:
-      hashes: ${{ steps.hash.outputs.hashes }}
+    # outputs:
+    #   hashes: ${{ steps.hash.outputs.hashes }}
     steps:
       - name: Checkout code
         uses: actions/checkout@8410ad0602e1e429cee44a835ae9f77f654a6694 # v4.0.0
@@ -144,19 +144,19 @@ jobs:
           KUBECTL_VERSION: ${{ env.KUBECTL_VERSION }}
           GIT_TREE_STATE: ${{ env.GIT_TREE_STATE }}
 
-      - name: Generate subject for provenance
-        id: hash
-        env:
-          ARTIFACTS: '${{ steps.run-goreleaser.outputs.artifacts }}'
-        run: |
-          set -euo pipefail
+      # - name: Generate subject for provenance
+      #   id: hash
+      #   env:
+      #     ARTIFACTS: '${{ steps.run-goreleaser.outputs.artifacts }}'
+      #   run: |
+      #     set -euo pipefail
 
-          hashes=$(echo $ARTIFACTS | jq --raw-output '.[] | {name, "digest": (.extra.Digest // .extra.Checksum)} | select(.digest) | {digest} + {name} | join("  ") | sub("^sha256:";"")' | base64 -w0)
-          if test "$hashes" = ""; then # goreleaser < v1.13.0
-            checksum_file=$(echo "$ARTIFACTS" | jq -r '.[] | select (.type=="Checksum") | .path')
-            hashes=$(cat $checksum_file | base64 -w0)
-          fi
-          echo "hashes=$hashes" >> $GITHUB_OUTPUT
+      #     hashes=$(echo $ARTIFACTS | jq --raw-output '.[] | {name, "digest": (.extra.Digest // .extra.Checksum)} | select(.digest) | {digest} + {name} | join("  ") | sub("^sha256:";"")' | base64 -w0)
+      #     if test "$hashes" = ""; then # goreleaser < v1.13.0
+      #       checksum_file=$(echo "$ARTIFACTS" | jq -r '.[] | select (.type=="Checksum") | .path')
+      #       hashes=$(cat $checksum_file | base64 -w0)
+      #     fi
+      #     echo "hashes=$hashes" >> $GITHUB_OUTPUT
 
   # goreleaser-provenance:
   #   needs: [goreleaser]
