@@ -5,7 +5,7 @@ project_name: argocd
 before:
   hooks:
     - go mod download
-    - make build-ui
+    # - make build-ui
 
 builds:
   - id: argocd-cli
