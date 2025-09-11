@@ -24,13 +24,13 @@ builds:
       - -extldflags="-static"
     goos:
       - linux
-      - windows
-      - darwin
+      # - windows
+      # - darwin
     goarch:
       - amd64
-      - arm64
-      - s390x
-      - ppc64le
+      # - arm64
+      # - s390x
+      # - ppc64le
     ignore:
       - goos: darwin
         goarch: s390x
