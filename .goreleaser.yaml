@@ -7,53 +7,53 @@ before:
     - go mod download
     # - make build-ui
 
-# builds:
-#   - id: argocd-cli
-#     main: ./cmd
-#     binary: argocd-{{ .Os}}-{{ .Arch}}
-#     env:
-#       - CGO_ENABLED=0
-#     flags:
-#       - -v
-#     ldflags:
-#       - -X github.com/argoproj/argo-cd/v3/common.version={{ .Version }}
-#       - -X github.com/argoproj/argo-cd/v3/common.buildDate={{ .Date }}
-#       - -X github.com/argoproj/argo-cd/v3/common.gitCommit={{ .FullCommit }}
-#       - -X github.com/argoproj/argo-cd/v3/common.gitTreeState={{ .Env.GIT_TREE_STATE }}
-#       - -X github.com/argoproj/argo-cd/v3/common.kubectlVersion={{ .Env.KUBECTL_VERSION }}
-#       - -extldflags="-static"
-#     goos:
-#       - linux
-#       # - windows
-#       # - darwin
-#     goarch:
-#       - amd64
-#       # - arm64
-#       # - s390x
-#       # - ppc64le
-#     ignore:
-#       - goos: darwin
-#         goarch: s390x
-#       - goos: darwin
-#         goarch: ppc64le
-#       - goos: windows
-#         goarch: s390x
-#       - goos: windows
-#         goarch: ppc64le
-#       - goos: windows
-#         goarch: arm64
+builds:
+  - id: argocd-cli
+    main: ./cmd
+    binary: argocd-{{ .Os}}-{{ .Arch}}
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -v
+    ldflags:
+      - -X github.com/argoproj/argo-cd/v3/common.version={{ .Version }}
+      - -X github.com/argoproj/argo-cd/v3/common.buildDate={{ .Date }}
+      - -X github.com/argoproj/argo-cd/v3/common.gitCommit={{ .FullCommit }}
+      - -X github.com/argoproj/argo-cd/v3/common.gitTreeState={{ .Env.GIT_TREE_STATE }}
+      - -X github.com/argoproj/argo-cd/v3/common.kubectlVersion={{ .Env.KUBECTL_VERSION }}
+      - -extldflags="-static"
+    goos:
+      - linux
+      # - windows
+      # - darwin
+    goarch:
+      - amd64
+      # - arm64
+      # - s390x
+      # - ppc64le
+    ignore:
+      - goos: darwin
+        goarch: s390x
+      - goos: darwin
+        goarch: ppc64le
+      - goos: windows
+        goarch: s390x
+      - goos: windows
+        goarch: ppc64le
+      - goos: windows
+        goarch: arm64
 
-# archives:
-#   - id: argocd-archive
-#     ids:
-#       - argocd-cli
-#     name_template: |-
-#       {{ .ProjectName }}-{{ .Os }}-{{ .Arch }}
-#     formats: [binary]
+archives:
+  - id: argocd-archive
+    ids:
+      - argocd-cli
+    name_template: |-
+      {{ .ProjectName }}-{{ .Os }}-{{ .Arch }}
+    formats: [binary]
 
-# checksum:
-#   name_template: 'cli_checksums.txt'
-#   algorithm: sha256
+checksum:
+  name_template: 'cli_checksums.txt'
+  algorithm: sha256
 
 release:
   ## Lets see if GORELEASER_MAKE_LATEST will be use by default
