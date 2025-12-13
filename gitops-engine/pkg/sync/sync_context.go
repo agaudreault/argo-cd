@@ -1455,10 +1455,19 @@ func (sc *syncContext) runTasks(tasks syncTasks, dryRun bool) runState {
 				log := sc.log.WithValues("dryRun", dryRun, "task", t).V(1)
 				log.Info("Deleting")
 				if !dryRun {
+					// Remove the finalizer before deleting to avoid race condition with Replace=true.
+					// If the hook has a finalizer and we try to delete it, the delete will hang
+					// waiting for the finalizer to be removed. By removing it first, we ensure
+					// the delete can proceed immediately.
+					if err := sc.removeHookFinalizer(t); err != nil {
+						state = failed
+						sc.setResourceResult(t, t.syncStatus, common.OperationError, fmt.Sprintf("failed to remove hook finalizer: %v", err))
+						return state
+					}
 					err := sc.deleteResource(t)
 					if err != nil {
 						// it is possible to get a race condition here, such that the resource does not exist when
-						// delete is requested, we treat this as a nopand remove the liveObj
+						// delete is requested, we treat this as a no-op and remove the liveObj
 						if !apierrors.IsNotFound(err) {
 							state = failed
 							sc.setResourceResult(t, t.syncStatus, common.OperationError, fmt.Sprintf("failed to delete resource: %v", err))
