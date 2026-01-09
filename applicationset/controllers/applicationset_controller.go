@@ -75,9 +75,15 @@ const (
 	AllAtOnceDeletionOrder            = "AllAtOnce"
 )
 
+var defaultPreservedFinalizers = []string{
+	argov1alpha1.PreDeleteFinalizerName,
+	argov1alpha1.PostDeleteFinalizerName,
+}
+
 var defaultPreservedAnnotations = []string{
 	NotifiedAnnotationKey,
 	argov1alpha1.AnnotationKeyRefresh,
+	argov1alpha1.AnnotationKeyHydrate,
 }
 
 type deleteInOrder struct {
@@ -663,8 +669,9 @@ func (r *ApplicationSetReconciler) SetupWithManager(mgr ctrl.Manager, enableProg
 		Watches(
 			&corev1.Secret{},
 			&clusterSecretEventHandler{
-				Client: mgr.GetClient(),
-				Log:    log.WithField("type", "createSecretEventHandler"),
+				Client:                   mgr.GetClient(),
+				Log:                      log.WithField("type", "createSecretEventHandler"),
+				ApplicationSetNamespaces: r.ApplicationSetNamespaces,
 			}).
 		Complete(r)
 }
@@ -741,21 +748,19 @@ func (r *ApplicationSetReconciler) createOrUpdateInCluster(ctx context.Context, 
 				}
 			}
 
-			// Preserve post-delete finalizers:
-			//   https://github.com/argoproj/argo-cd/issues/17181
-			for _, finalizer := range found.Finalizers {
-				if strings.HasPrefix(finalizer, argov1alpha1.PostDeleteFinalizerName) {
-					if generatedApp.Finalizers == nil {
-						generatedApp.Finalizers = []string{}
+			// Preserve deleting finalizers and avoid diff conflicts
+			for _, finalizer := range defaultPreservedFinalizers {
+				for _, f := range found.Finalizers {
+					// For finalizers, use prefix matching in case it contains "/" stages
+					if strings.HasPrefix(f, finalizer) {
+						generatedApp.Finalizers = append(generatedApp.Finalizers, f)
 					}
-					generatedApp.Finalizers = append(generatedApp.Finalizers, finalizer)
 				}
 			}
 
 			found.Annotations = generatedApp.Annotations
-
-			found.Finalizers = generatedApp.Finalizers
 			found.Labels = generatedApp.Labels
+			found.Finalizers = generatedApp.Finalizers
 
 			return controllerutil.SetControllerReference(&applicationSet, found, r.Scheme)
 		})
