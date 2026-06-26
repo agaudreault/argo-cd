@@ -4059,7 +4059,7 @@ func TestSelfHealRemainingBackoff(t *testing.T) {
 }
 
 func TestPersistAppStatus_AnnotationManagement(t *testing.T) {
-	t.Run("persistReconciliationStatus deletes only refresh annotation", func(t *testing.T) {
+	t.Run("persistReconciliationStatus deletes only refresh annotation when refreshed", func(t *testing.T) {
 		app := newFakeApp()
 		app.Annotations = map[string]string{
 			v1alpha1.AnnotationKeyRefresh: string(v1alpha1.RefreshTypeNormal),
@@ -4074,7 +4074,7 @@ func TestPersistAppStatus_AnnotationManagement(t *testing.T) {
 		origApp := app.DeepCopy()
 		newStatus := app.Status.DeepCopy()
 
-		ctrl.persistReconciliationStatus(origApp, newStatus)
+		ctrl.persistReconciliationStatus(origApp, newStatus, true)
 
 		// Verify the patch was created correctly
 		patchedApp, err := ctrl.applicationClientset.ArgoprojV1alpha1().Applications(app.Namespace).Get(t.Context(), app.Name, metav1.GetOptions{})
@@ -4090,6 +4090,44 @@ func TestPersistAppStatus_AnnotationManagement(t *testing.T) {
 		assert.Equal(t, string(v1alpha1.HydrateTypeNormal), hydrateValue)
 
 		// Other annotations should be preserved
+		otherValue, hasOther := patchedApp.Annotations["other-annotation"]
+		assert.True(t, hasOther, "other annotations should be preserved")
+		assert.Equal(t, "other-value", otherValue)
+	})
+
+	t.Run("persistReconciliationStatus keeps refresh annotation when not refreshed", func(t *testing.T) {
+		app := newFakeApp()
+		app.Annotations = map[string]string{
+			v1alpha1.AnnotationKeyRefresh: string(v1alpha1.RefreshTypeNormal),
+			v1alpha1.AnnotationKeyHydrate: string(v1alpha1.HydrateTypeNormal),
+			"other-annotation":            "other-value",
+		}
+		// Force a status change so the patch is actually applied.
+		app.Status.Sync.Status = v1alpha1.SyncStatusCodeSynced
+		app.Status.Health.Status = health.HealthStatusHealthy
+
+		ctrl := newFakeController(t.Context(), &fakeData{apps: []runtime.Object{app}}, nil)
+
+		origApp := app.DeepCopy()
+		newStatus := app.Status.DeepCopy()
+		newStatus.Sync.Status = v1alpha1.SyncStatusCodeOutOfSync
+
+		ctrl.persistReconciliationStatus(origApp, newStatus, false)
+
+		// Verify the patch was created correctly
+		patchedApp, err := ctrl.applicationClientset.ArgoprojV1alpha1().Applications(app.Namespace).Get(t.Context(), app.Name, metav1.GetOptions{})
+		require.NoError(t, err)
+
+		// Refresh annotation must NOT be deleted when the app was not refreshed
+		refreshValue, hasRefresh := patchedApp.Annotations[v1alpha1.AnnotationKeyRefresh]
+		assert.True(t, hasRefresh, "refresh annotation should be kept when not refreshed")
+		assert.Equal(t, string(v1alpha1.RefreshTypeNormal), refreshValue)
+
+		// Other annotations should be preserved
+		hydrateValue, hasHydrate := patchedApp.Annotations[v1alpha1.AnnotationKeyHydrate]
+		assert.True(t, hasHydrate, "hydrate annotation should still exist")
+		assert.Equal(t, string(v1alpha1.HydrateTypeNormal), hydrateValue)
+
 		otherValue, hasOther := patchedApp.Annotations["other-annotation"]
 		assert.True(t, hasOther, "other annotations should be preserved")
 		assert.Equal(t, "other-value", otherValue)
