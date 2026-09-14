@@ -1,4 +1,4 @@
-import {DataLoader, DropDown, Tab, Tabs} from 'argo-ui';
+import {DataLoader, DropDown, MockupList, Tab, Tabs} from 'argo-ui';
 import * as React from 'react';
 import {useState} from 'react';
 import {BehaviorSubject} from 'rxjs';
@@ -14,7 +14,6 @@ import {ResourceTabExtension} from '../../../shared/services/extensions-service'
 import {NodeInfo, SelectNode} from '../application-details/application-details';
 import {ApplicationNodeInfo} from '../application-node-info/application-node-info';
 import {ApplicationParameters} from '../application-parameters/application-parameters';
-import {ApplicationResourceEvents} from '../application-resource-events/application-resource-events';
 import type {ResourceTreeNode} from '../application-resource-tree/application-resource-tree';
 import {ApplicationSummary} from '../application-summary/application-summary';
 import {AppSetResourceNodePreview} from './appset-resource-node-preview';
@@ -74,6 +73,20 @@ export const ResourceDetails = (props: ResourceDetailsProps) => {
 
     const [pageNumber, setPageNumber] = React.useState(0);
     const [collapsedSources, setCollapsedSources] = React.useState(new Array<boolean>()); // For Sources tab to save collapse states
+
+    // Load application events once so both the EVENTS tab list and its badge (number of warning/error events) share a single fetch
+    const [appEvents, setAppEvents] = React.useState<Event[] | null>(null);
+    React.useEffect(() => {
+        let cancelled = false;
+        services.applications
+            .events(application.metadata.name, application.metadata.namespace)
+            .then(events => !cancelled && setAppEvents(events))
+            .catch(() => !cancelled && setAppEvents([]));
+        return () => {
+            cancelled = true;
+        };
+    }, [application.metadata.name, application.metadata.namespace, application.metadata.resourceVersion]);
+
     const handleCollapse = (i: number, isCollapsed: boolean) => {
         const v = collapsedSources.slice();
         v[i] = isCollapsed;
@@ -207,11 +220,13 @@ export const ResourceDetails = (props: ResourceDetailsProps) => {
         const tabs: Tab[] = [
             {
                 title: 'SUMMARY',
+                icon: 'fa fa-align-justify',
                 key: 'summary',
                 content: <ApplicationSummary app={application} updateApp={(app, query: {validate?: boolean}) => updateApp(app, query)} />
             },
             {
                 title: application.spec.sources === undefined ? 'PARAMETERS' : 'SOURCES',
+                icon: application.spec.sources === undefined ? 'fa fa-sliders-h' : 'fa fa-code-branch',
                 key: 'parameters',
                 content: (
                     <ApplicationParameters
@@ -222,20 +237,6 @@ export const ResourceDetails = (props: ResourceDetailsProps) => {
                         collapsedSources={collapsedSources}
                         handleCollapse={handleCollapse}
                         appContext={props.appCxt}
-                    />
-                )
-            },
-            {
-                title: 'MANIFEST',
-                key: 'manifest',
-                content: (
-                    <YamlEditor
-                        minHeight={800}
-                        input={application.spec}
-                        onSave={async patch => {
-                            const spec = JSON.parse(JSON.stringify(application.spec));
-                            return services.applications.updateSpec(application.metadata.name, application.metadata.namespace, jsonMergePatch.apply(spec, JSON.parse(patch)));
-                        }}
                     />
                 )
             }
@@ -261,9 +262,35 @@ export const ResourceDetails = (props: ResourceDetailsProps) => {
         }
 
         tabs.push({
+            title: 'MANIFEST',
+            icon: 'fa fa-file-alt',
+            key: 'manifest',
+            content: (
+                <YamlEditor
+                    minHeight={800}
+                    input={application.spec}
+                    onSave={async patch => {
+                        const spec = JSON.parse(JSON.stringify(application.spec));
+                        return services.applications.updateSpec(application.metadata.name, application.metadata.namespace, jsonMergePatch.apply(spec, JSON.parse(patch)));
+                    }}
+                />
+            )
+        });
+
+        tabs.push({
+            title: 'STATUS',
+            icon: 'fa fa-file-circle-check',
+            key: 'status',
+            content: <YamlEditor minHeight={800} input={application.status} hideModeButtons={true} />
+        });
+
+        const numEventErrors = (appEvents || []).filter(event => event.type !== 'Normal').reduce((total, event) => total + event.count, 0);
+        tabs.push({
             title: 'EVENTS',
+            icon: 'fa fa-calendar-alt',
+            badge: (numEventErrors > 0 && numEventErrors) || null,
             key: 'event',
-            content: <ApplicationResourceEvents applicationName={application.metadata.name} applicationNamespace={application.metadata.namespace} />
+            content: <div className='application-resource-events'>{appEvents === null ? <MockupList height={50} marginTop={10} /> : <EventsList events={appEvents} />}</div>
         });
 
         const extensionTabs = services.extensions.getResourceTabs('argoproj.io', 'Application').map((ext, i) => ({
