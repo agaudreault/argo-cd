@@ -1,4 +1,5 @@
-// Shared details shell surface. Both feature modules build their per-kind
-// wrappers on top of AbstractApplicationDetails.
-export {AbstractApplicationDetails} from '../../../applications/components/application-details/application-details';
-export type {AbstractApplicationDetailsProps, ObjectListKind} from '../../../applications/components/application-details/application-details';
+// Shared building blocks for the Application and ApplicationSet detail views.
+export * from './tree-filter';
+export * from './load-application-info';
+export * from './application-details-filters';
+export * from './resource-tree-toolbar';

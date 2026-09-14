@@ -4,7 +4,7 @@ import {Timestamp} from '../../../shared/components';
 import * as models from '../../../shared/models';
 import {getAppSetConditionCategory} from '../../../shared/applications/utils';
 
-import '../../../applications/components/application-conditions/application-conditions.scss';
+import './applicationset-conditions.scss';
 
 interface ApplicationSetConditionsProps {
     conditions: models.ApplicationSetCondition[];

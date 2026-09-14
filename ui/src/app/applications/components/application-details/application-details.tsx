@@ -1,39 +1,42 @@
-import {NotificationType, SlidingPanel, Tooltip, SplitButtonAction} from 'argo-ui';
+import {NotificationType, SlidingPanel, SplitButtonAction} from 'argo-ui';
 import classNames from 'classnames';
 import React, {useState, useEffect, useCallback, useRef, useContext, FC} from 'react';
-import * as ReactDOM from 'react-dom';
 import * as models from '../../../shared/models';
 import {RouteComponentProps} from 'react-router';
-import {BehaviorSubject, combineLatest, from, merge, Observable} from 'rxjs';
-import {filter, map, mergeMap, repeat, retry} from 'rxjs/operators';
+import {BehaviorSubject, combineLatest} from 'rxjs';
+import {map} from 'rxjs/operators';
 
 import {DataLoader, EmptyState, ErrorNotification, ObservableQuery, Page, Paginate, Revision, Timestamp} from '../../../shared/components';
-import {AppContext, AuthSettingsCtx, Context, ContextApis} from '../../../shared/context';
+import {AppContext, AuthSettingsCtx, Context} from '../../../shared/context';
 import * as appModels from '../../../shared/models';
 import {AppDetailsPreferences, AppsDetailsViewKey, AppsDetailsViewType, services} from '../../../shared/services';
 
 import {ApplicationConditions} from '../application-conditions/application-conditions';
-import {ApplicationSetConditions} from '../../../applicationsets/components/applicationset-conditions/applicationset-conditions';
 import {NoticeBanner} from '../application-notice/notice-banner';
 import {ApplicationDeploymentHistory} from '../application-deployment-history/application-deployment-history';
 import {ApplicationOperationState} from '../application-operation-state/application-operation-state';
 import {PodGroupType, PodView} from '../application-pod-view/pod-view';
 import {ApplicationResourceTree, type ResourceTreeNode} from '../application-resource-tree/application-resource-tree';
 import {ApplicationStatusPanel} from '../application-status-panel/application-status-panel';
-import {ApplicationSetStatusPanel} from '../../../applicationsets/components/applicationset-status-panel/appset-status-panel';
 import {ApplicationSyncPanel} from '../application-sync-panel/application-sync-panel';
-import {isApp} from '../utils';
 import {ResourceDetails} from '../resource-details/resource-details';
-import {AppSetResourceDetails} from '../../../applicationsets/components/resource-details/appset-resource-details';
 import * as AppUtils from '../utils';
 import {ApplicationResourceList, ApplicationResourceParentRef} from './application-resource-list';
 import {APPLICATION_DETAILS_SORT_KEY, ApplicationResourceSortKey, compareApplicationResource, GROUPED_NODES_DETAILS_SORT_KEY} from './application-resource-sort';
 import {useListSort} from '../../../shared/hooks/use-list-sort';
-import {Filters, FiltersProps, getEffectiveResourceFilter} from './application-resource-filter';
+import {getEffectiveResourceFilter} from './application-resource-filter';
 import {getAppDefaultSource, getAppCurrentVersion, urlPattern, getApplicationDetailsContainerClass} from '../utils';
 import {ChartDetails, OCIMetadata} from '../../../shared/models';
 import {ApplicationsDetailsAppDropdown} from './application-details-app-dropdown';
-import {useSidebarTarget} from '../../../sidebar/sidebar';
+import {
+    ApplicationDetailsFilters,
+    filterTreeNode,
+    getTreeFilter,
+    loadApplicationInfo,
+    NodeInfo as SharedNodeInfo,
+    ResourceTreeToolbar,
+    SelectNode as SharedSelectNode
+} from '../../../shared/applications/details';
 
 import './application-details.scss';
 import {TopBarActionMenuExt, AppViewExtension, StatusPanelExtension} from '../../../shared/services/extensions-service';
@@ -55,53 +58,22 @@ interface ApplicationDetailsState {
     topBarActionMenuExtsMap?: {[key: string]: TopBarActionMenuExt};
 }
 
-interface FilterInput {
-    name: string[];
-    kind: string[];
-    health: string[];
-    sync: string[];
-    namespace: string[];
-}
+// NodeInfo and SelectNode now live in the shared details module; re-export them
+// here to preserve existing import sites.
+export const NodeInfo = SharedNodeInfo;
+export const SelectNode = SharedSelectNode;
 
-const ApplicationDetailsFilters = (props: FiltersProps) => {
-    const sidebarTarget = useSidebarTarget();
-    return ReactDOM.createPortal(<Filters {...props} />, sidebarTarget?.current);
-};
+export type ApplicationDetailsProps = RouteComponentProps<{appnamespace: string; name: string}>;
 
-export const NodeInfo = (node?: string): {key: string; container: number} => {
-    const nodeContainer = {key: '', container: 0};
-    if (node) {
-        const parts = node.split('/');
-        nodeContainer.key = parts.slice(0, 4).join('/');
-        nodeContainer.container = parseInt(parts[4] || '0', 10);
-    }
-    return nodeContainer;
-};
-
-export const SelectNode = (fullName: string, containerIndex = 0, tab: string = null, appContext: ContextApis) => {
-    const node = fullName ? `${fullName}/${containerIndex}` : null;
-    // Clear the deep-link highlight only when the highlighted node itself is selected.
-    // Selecting any other node keeps the highlight so the deep-linked resource stays marked.
-    const highlightKey = NodeInfo(new URLSearchParams(window.location.search).get('highlight')).key;
-    const clearHighlight = Boolean(fullName) && highlightKey === fullName;
-    appContext.navigation.goto('.', clearHighlight ? {node, tab, highlight: null} : {node, tab}, {replace: true});
-};
-
-export type ObjectListKind = 'application' | 'applicationset';
-
-export type AbstractApplicationDetailsProps = RouteComponentProps<{appnamespace: string; name: string}> & {objectListKind: ObjectListKind};
-
-// AbstractApplicationDetails is the shared details shell used by both the
-// Application and ApplicationSet views. The concrete kind is supplied by the
-// thin per-kind wrappers (ApplicationDetails / ApplicationSetDetails) so callers
-// never thread the kind string themselves.
-export const AbstractApplicationDetails: FC<AbstractApplicationDetailsProps> = props => {
+// ApplicationDetails is the Application-kind details view. It contains no
+// app/appset branching: the ApplicationSet view is a separate component
+// (ApplicationSetDetails) composing the same shared building blocks.
+export const ApplicationDetails: FC<ApplicationDetailsProps> = props => {
     const appContext = useContext(Context);
     const authSettings = useContext(AuthSettingsCtx);
     const appLabelKey = authSettings?.appLabelKey;
     const trackingMethod = authSettings?.trackingMethod;
     const [appChanged] = useState(() => new BehaviorSubject<appModels.AbstractApplication>(null));
-    const objectListKind = props.objectListKind;
 
     const getExtensionsState = useCallback(() => {
         const extensions = services.extensions.getAppViewExtensions();
@@ -178,29 +150,6 @@ export const AbstractApplicationDetails: FC<AbstractApplicationDetailsProps> = p
     const highlightNodeInfo = NodeInfo(new URLSearchParams(props.history.location.search).get('highlight'));
     const highlightNodeKey = highlightNodeInfo.key;
     const selectedExtension = new URLSearchParams(props.history.location.search).get('extension');
-
-    // Define escapeRegex first as it's used by other functions
-    const escapeRegex = useCallback((input: string): string => {
-        return input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    }, []);
-
-    // Define nodeNameMatchesWildcardFilters as it's used by filterTreeNode
-    const nodeNameMatchesWildcardFilters = useCallback(
-        (nodeName: string, filterInputNames: string[]): boolean => {
-            const regularExpression = new RegExp(
-                filterInputNames
-                    // Escape any regex input to ensure only * can be used
-                    .map(pattern => '^' + escapeRegex(pattern) + '$')
-                    // Replace any escaped * with proper regex
-                    .map(pattern => pattern.replace(/\\\*/g, '.*'))
-                    // Join all filterInputs to a single regular expression
-                    .join('|'),
-                'gi'
-            );
-            return regularExpression.test(nodeName);
-        },
-        [escapeRegex]
-    );
 
     const setNodeExpansion = useCallback((node: string, isExpanded: boolean) => {
         setState(prevState => {
@@ -315,7 +264,7 @@ Are you sure you want to disable auto-sync and rollback application '${props.mat
                         await services.applications.update(update, {validate: false});
                     }
                     await services.applications.rollback(props.match.params.name, getAppNamespace(), revisionHistory.id);
-                    appChanged.next(await services.applications.get(props.match.params.name, getAppNamespace(), objectListKind));
+                    appChanged.next(await services.applications.get(props.match.params.name, getAppNamespace(), 'application'));
                     setRollbackPanelVisible(-1);
                 }
             } catch (e) {
@@ -325,27 +274,24 @@ Are you sure you want to disable auto-sync and rollback application '${props.mat
                 });
             }
         },
-        [props.match.params.name, getAppNamespace, appContext, objectListKind, appChanged, setRollbackPanelVisible]
+        [props.match.params.name, getAppNamespace, appContext, appChanged, setRollbackPanelVisible]
     );
 
-    const getPageTitle = useCallback(
-        (view: string) => {
-            const {Tree, Pods, Network, List} = AppsDetailsViewKey;
-            const resourceKind = objectListKind === 'applicationset' ? 'ApplicationSet' : 'Application';
-            switch (view) {
-                case Tree:
-                    return `${resourceKind} Details Tree`;
-                case Network:
-                    return `${resourceKind} Details Network`;
-                case Pods:
-                    return `${resourceKind} Details Pods`;
-                case List:
-                    return `${resourceKind} Details List`;
-            }
-            return '';
-        },
-        [objectListKind]
-    );
+    const getPageTitle = useCallback((view: string) => {
+        const {Tree, Pods, Network, List} = AppsDetailsViewKey;
+        const resourceKind = 'Application';
+        switch (view) {
+            case Tree:
+                return `${resourceKind} Details Tree`;
+            case Network:
+                return `${resourceKind} Details Network`;
+            case Pods:
+                return `${resourceKind} Details Pods`;
+            case List:
+                return `${resourceKind} Details List`;
+        }
+        return '';
+    }, []);
 
     const getContent = useCallback((application: models.Application, source: models.ApplicationSource, revisions: string[], revision: string) => {
         const renderCommitMessage = (message: string) =>
@@ -685,10 +631,9 @@ Are you sure you want to disable auto-sync and rollback application '${props.mat
                                 })
                             )
                         }>
-                        {({application, tree, pref}: {application: appModels.AbstractApplication; tree: appModels.ApplicationTree; pref: AppDetailsPreferences}) => {
+                        {({application, tree, pref}: {application: appModels.Application; tree: appModels.ApplicationTree; pref: AppDetailsPreferences}) => {
                             tree.nodes = tree.nodes || [];
-                            const isApplication = isApp(application);
-                            const effectiveResourceFilter = getEffectiveResourceFilter(isApplication, pref.resourceFilter);
+                            const effectiveResourceFilter = getEffectiveResourceFilter(true, pref.resourceFilter);
                             const treeFilter = getTreeFilter(effectiveResourceFilter);
                             const setFilter = (items: string[]) => {
                                 appContext.navigation.goto('.', {resource: items.join(',')}, {replace: true});
@@ -696,34 +641,18 @@ Are you sure you want to disable auto-sync and rollback application '${props.mat
                             };
                             const clearFilter = () => setFilter([]);
                             const refreshing = application.metadata.annotations && application.metadata.annotations[appModels.AnnotationRefreshKey];
-                            const appNodesByName = isApplication ? groupAppNodesByKey(application as appModels.Application, tree) : new Map();
-                            // For ApplicationSets, add the appset itself to the map
-                            if (!isApplication) {
-                                const appSetKey = AppUtils.nodeKey({
-                                    group: 'argoproj.io',
-                                    kind: application.kind,
-                                    name: application.metadata.name,
-                                    namespace: application.metadata.namespace
-                                });
-                                appNodesByName.set(appSetKey, application);
-                                // Also add tree nodes for ApplicationSets
-                                tree.nodes.forEach(node => appNodesByName.set(AppUtils.nodeKey(node), node));
-                            }
+                            const appNodesByName = groupAppNodesByKey(application, tree);
                             const selectedItem = (selectedNodeKey && appNodesByName.get(selectedNodeKey)) || null;
                             const isAppSelected = selectedItem === application;
                             const selectedNode = !isAppSelected && (selectedItem as appModels.ResourceNode);
-                            const operationState = isApplication ? (application as appModels.Application).status.operationState : undefined;
-                            const hydrateOperationState = isApplication ? (application as appModels.Application).status.sourceHydrator?.currentOperation : undefined;
+                            const operationState = application.status.operationState;
+                            const hydrateOperationState = application.status.sourceHydrator?.currentOperation;
                             const conditions = application.status?.conditions || [];
                             const syncResourceKey = new URLSearchParams(props.history.location.search).get('deploy');
-                            const source = isApplication ? getAppDefaultSource(application as appModels.Application) : undefined;
+                            const source = getAppDefaultSource(application);
                             const showToolTip = pref?.userHelpTipMsgs.find(usrMsg => usrMsg.appName === application.metadata.name);
                             const resourceNodes = (): any[] => {
-                                if (!isApplication) {
-                                    // For ApplicationSets, use tree nodes directly
-                                    return tree.nodes.map(node => ({...node, orphaned: false}));
-                                }
-                                const app = application as appModels.Application;
+                                const app = application;
                                 const statusByKey = new Map<string, models.ResourceStatus>();
                                 app.status.resources.forEach(res => statusByKey.set(AppUtils.nodeKey(res), res));
                                 const resources = new Map<string, any>();
@@ -784,62 +713,43 @@ Are you sure you want to disable auto-sync and rollback application '${props.mat
                                     getNodeExpansion: (node: string) => getNodeExpansion(node)
                                 };
 
-                                if (isApplication) {
-                                    return {
-                                        ...commonProps,
-                                        onNodeClick: (fullName: string) => {
-                                            const parts = fullName.split('/');
-                                            const [group, kind, namespace, name] = parts;
-                                            if (group === 'argoproj.io' && (kind === 'Application' || kind === 'ApplicationSet')) {
-                                                // When the clicked node is the synthesized parent (ApplicationSet owner or
-                                                // app-of-apps parent Application), navigate to its page instead of selecting
-                                                // it as a resource. The parent namespace may be unset (parent in the
-                                                // control-plane namespace), so build the URL from the ref via getAppUrl.
-                                                const parentRef = AppUtils.getApplicationParentRef(application as appModels.Application, appLabelKey, trackingMethod);
-                                                if (parentRef && parentRef.kind === kind && parentRef.name === name && (parentRef.namespace || '') === namespace) {
-                                                    appContext.navigation.goto(
-                                                        '/' +
-                                                            AppUtils.getAppUrl({
-                                                                kind: parentRef.kind,
-                                                                metadata: {name: parentRef.name, namespace: parentRef.namespace}
-                                                            } as appModels.AbstractApplication)
-                                                    );
-                                                    return;
-                                                }
+                                return {
+                                    ...commonProps,
+                                    onNodeClick: (fullName: string) => {
+                                        const parts = fullName.split('/');
+                                        const [group, kind, namespace, name] = parts;
+                                        if (group === 'argoproj.io' && (kind === 'Application' || kind === 'ApplicationSet')) {
+                                            // When the clicked node is the synthesized parent (ApplicationSet owner or
+                                            // app-of-apps parent Application), navigate to its page instead of selecting
+                                            // it as a resource. The parent namespace may be unset (parent in the
+                                            // control-plane namespace), so build the URL from the ref via getAppUrl.
+                                            const parentRef = AppUtils.getApplicationParentRef(application, appLabelKey, trackingMethod);
+                                            if (parentRef && parentRef.kind === kind && parentRef.name === name && (parentRef.namespace || '') === namespace) {
+                                                appContext.navigation.goto(
+                                                    '/' +
+                                                        AppUtils.getAppUrl({
+                                                            kind: parentRef.kind,
+                                                            metadata: {name: parentRef.name, namespace: parentRef.namespace}
+                                                        } as appModels.AbstractApplication)
+                                                );
+                                                return;
                                             }
-                                            selectNode(fullName);
-                                        },
-                                        nodeMenu: (node: ResourceTreeNode) =>
-                                            AppUtils.renderResourceMenu(node, application as appModels.Application, tree, appContext, appChanged, () =>
-                                                getApplicationActionMenu(application as appModels.Application, false, true)
-                                            ),
-                                        app: application as appModels.Application,
-                                        showOrphanedResources: pref.orphanedResources,
-                                        showAppParent: pref.showAppParent,
-                                        appLabelKey,
-                                        trackingMethod,
-                                        useNetworkingHierarchy: pref.view === 'network',
-                                        podGroupCount: pref.podGroupCount
-                                    };
-                                } else {
-                                    return {
-                                        ...commonProps,
-                                        onNodeClick: (fullName: string) => {
-                                            selectNode(fullName);
-                                        },
-                                        app: application,
-                                        showOrphanedResources: false,
-                                        showAppParent: pref.showAppParent,
-                                        appLabelKey,
-                                        trackingMethod,
-                                        useNetworkingHierarchy: false,
-                                        podGroupCount: 0
-                                    };
-                                }
+                                        }
+                                        selectNode(fullName);
+                                    },
+                                    nodeMenu: (node: ResourceTreeNode) =>
+                                        AppUtils.renderResourceMenu(node, application, tree, appContext, appChanged, () => getApplicationActionMenu(application, false, true)),
+                                    app: application,
+                                    showOrphanedResources: pref.orphanedResources,
+                                    showAppParent: pref.showAppParent,
+                                    appLabelKey,
+                                    trackingMethod,
+                                    useNetworkingHierarchy: pref.view === 'network',
+                                    podGroupCount: pref.podGroupCount
+                                };
                             };
 
                             const {Tree, Pods, Network, List} = AppsDetailsViewKey;
-                            const zoomNum = (pref.zoom * 100).toFixed(0);
                             const setZoom = (s: number) => {
                                 let targetZoom: number = pref.zoom + s;
                                 if (targetZoom <= 0.05) {
@@ -889,7 +799,7 @@ Are you sure you want to disable auto-sync and rollback application '${props.mat
                                     });
                                     setState(prevState => ({...prevState, collapsedNodes: collapsedNodesList}));
                                 } else {
-                                    const managedKeys = isApplication ? new Set((application as appModels.Application).status.resources.map(AppUtils.nodeKey)) : new Set<string>();
+                                    const managedKeys = new Set(application.status.resources.map(AppUtils.nodeKey));
                                     nodes.forEach(node => {
                                         if (!((node.parentRefs || []).length === 0 || managedKeys.has(AppUtils.nodeKey(node)))) {
                                             node.parentRefs.forEach(parent => {
@@ -914,9 +824,9 @@ Are you sure you want to disable auto-sync and rollback application '${props.mat
                             const activeStatusExt = state.statusExtensionsMap[selectedExtension];
                             const activeTopBarActionMenuExt = state.topBarActionMenuExtsMap[selectedExtension];
 
-                            if (isApplication && state.extensionsMap[pref.view] != null) {
+                            if (state.extensionsMap[pref.view] != null) {
                                 const extension = state.extensionsMap[pref.view];
-                                if (!extension.shouldDisplay(application as appModels.Application)) {
+                                if (!extension.shouldDisplay(application)) {
                                     appContext.navigation.goto('.', {view: Tree});
                                 }
                             }
@@ -930,31 +840,18 @@ Are you sure you want to disable auto-sync and rollback application '${props.mat
                                         toolbar={{
                                             breadcrumbs: [
                                                 {
-                                                    title: isApplication ? 'Applications' : 'ApplicationSets',
-                                                    path: isApplication ? '/applications' : '/applicationsets'
+                                                    title: 'Applications',
+                                                    path: '/applications'
                                                 },
-                                                {title: <ApplicationsDetailsAppDropdown appName={props.match.params.name} objectListKind={objectListKind} />}
+                                                {title: <ApplicationsDetailsAppDropdown appName={props.match.params.name} objectListKind='application' />}
                                             ],
                                             actionMenu: {
-                                                items: isApplication
-                                                    ? [
-                                                          ...getApplicationActionMenu(application as appModels.Application, true),
-                                                          ...(state.topBarActionMenuExts
-                                                              ?.filter(ext => ext.shouldDisplay?.(application as appModels.Application))
-                                                              .map(ext => renderActionMenuItem(ext, tree, application as appModels.Application, setExtensionPanelVisible)) || [])
-                                                      ]
-                                                    : [
-                                                          {
-                                                              title: 'AppSet Details',
-                                                              iconClassName: 'fa fa-info-circle',
-                                                              action: () => selectNode(appFullName)
-                                                          },
-                                                          {
-                                                              title: 'Preview Apps',
-                                                              iconClassName: 'fa fa-eye',
-                                                              action: () => selectNode(appFullName, 0, 'preview')
-                                                          }
-                                                      ]
+                                                items: [
+                                                    ...getApplicationActionMenu(application, true),
+                                                    ...(state.topBarActionMenuExts
+                                                        ?.filter(ext => ext.shouldDisplay?.(application))
+                                                        .map(ext => renderActionMenuItem(ext, tree, application, setExtensionPanelVisible)) || [])
+                                                ]
                                             },
                                             tools: (
                                                 <React.Fragment key='app-list-tools'>
@@ -967,26 +864,22 @@ Are you sure you want to disable auto-sync and rollback application '${props.mat
                                                                 services.viewPreferences.updatePreferences({appDetails: {...pref, view: Tree}});
                                                             }}
                                                         />
-                                                        {isApplication && (
-                                                            <>
-                                                                <i
-                                                                    className={classNames('fa fa-th', {selected: pref.view === Pods})}
-                                                                    title='Pods'
-                                                                    onClick={() => {
-                                                                        appContext.navigation.goto('.', {view: Pods});
-                                                                        services.viewPreferences.updatePreferences({appDetails: {...pref, view: Pods}});
-                                                                    }}
-                                                                />
-                                                                <i
-                                                                    className={classNames('fa fa-network-wired', {selected: pref.view === Network})}
-                                                                    title='Network'
-                                                                    onClick={() => {
-                                                                        appContext.navigation.goto('.', {view: Network});
-                                                                        services.viewPreferences.updatePreferences({appDetails: {...pref, view: Network}});
-                                                                    }}
-                                                                />
-                                                            </>
-                                                        )}
+                                                        <i
+                                                            className={classNames('fa fa-th', {selected: pref.view === Pods})}
+                                                            title='Pods'
+                                                            onClick={() => {
+                                                                appContext.navigation.goto('.', {view: Pods});
+                                                                services.viewPreferences.updatePreferences({appDetails: {...pref, view: Pods}});
+                                                            }}
+                                                        />
+                                                        <i
+                                                            className={classNames('fa fa-network-wired', {selected: pref.view === Network})}
+                                                            title='Network'
+                                                            onClick={() => {
+                                                                appContext.navigation.goto('.', {view: Network});
+                                                                services.viewPreferences.updatePreferences({appDetails: {...pref, view: Network}});
+                                                            }}
+                                                        />
                                                         <i
                                                             className={classNames('fa fa-th-list', {selected: pref.view === List})}
                                                             title='List'
@@ -995,10 +888,9 @@ Are you sure you want to disable auto-sync and rollback application '${props.mat
                                                                 services.viewPreferences.updatePreferences({appDetails: {...pref, view: List}});
                                                             }}
                                                         />
-                                                        {isApplication &&
-                                                            state.extensions &&
+                                                        {state.extensions &&
                                                             (state.extensions || [])
-                                                                .filter(ext => ext.shouldDisplay(application as appModels.Application))
+                                                                .filter(ext => ext.shouldDisplay(application))
                                                                 .map(ext => (
                                                                     <i
                                                                         key={ext.title}
@@ -1016,22 +908,15 @@ Are you sure you want to disable auto-sync and rollback application '${props.mat
                                         }}>
                                         <div className='application-details__wrapper'>
                                             <div className='application-details__status-panel'>
-                                                {isApplication ? (
-                                                    <ApplicationStatusPanel
-                                                        application={application as appModels.Application}
-                                                        showDiff={() => selectNode(appFullName, 0, 'diff')}
-                                                        showOperation={() => setOperationStatusVisible(true)}
-                                                        showHydrateOperation={() => setHydrateOperationStatusVisible(true)}
-                                                        showConditions={() => setConditionsStatusVisible(true)}
-                                                        showExtension={id => setExtensionPanelVisible(id)}
-                                                        showMetadataInfo={revision => setState(prevState => ({...prevState, revision}))}
-                                                    />
-                                                ) : (
-                                                    <ApplicationSetStatusPanel
-                                                        appSet={application as appModels.ApplicationSet}
-                                                        showConditions={() => setConditionsStatusVisible(true)}
-                                                    />
-                                                )}
+                                                <ApplicationStatusPanel
+                                                    application={application}
+                                                    showDiff={() => selectNode(appFullName, 0, 'diff')}
+                                                    showOperation={() => setOperationStatusVisible(true)}
+                                                    showHydrateOperation={() => setHydrateOperationStatusVisible(true)}
+                                                    showConditions={() => setConditionsStatusVisible(true)}
+                                                    showExtension={id => setExtensionPanelVisible(id)}
+                                                    showMetadataInfo={revision => setState(prevState => ({...prevState, revision}))}
+                                                />
                                             </div>
                                             <NoticeBanner
                                                 annotations={application.metadata.annotations}
@@ -1051,101 +936,48 @@ Are you sure you want to disable auto-sync and rollback application '${props.mat
                                                                     onClearFilter={clearFilter}
                                                                     collapsed={viewPref.hideSidebar}
                                                                     resourceNodes={allResources}
-                                                                    hideKindFilter={!isApplication}
+                                                                    hideKindFilter={false}
                                                                 />
                                                             )}
                                                         </DataLoader>
-                                                        <div className='graph-options-panel'>
-                                                            <a
-                                                                className={`group-nodes-button`}
-                                                                onClick={() => {
-                                                                    toggleNameDirection();
-                                                                }}
-                                                                title={state.truncateNameOnRight ? 'Truncate resource name right' : 'Truncate resource name left'}>
-                                                                <i
-                                                                    className={classNames({
-                                                                        'fa fa-align-right': state.truncateNameOnRight,
-                                                                        'fa fa-align-left': !state.truncateNameOnRight
-                                                                    })}
-                                                                />
-                                                            </a>
-                                                            <a
-                                                                className={`group-nodes-button`}
-                                                                onClick={() => {
-                                                                    toggleNodeName();
-                                                                }}
-                                                                title={state.showFullNodeName ? 'Show wrapped resource name' : 'Show full resource name'}>
-                                                                <i
-                                                                    className={classNames({
-                                                                        'fa fa-expand': state.showFullNodeName,
-                                                                        'fa fa-compress': !state.showFullNodeName
-                                                                    })}
-                                                                />
-                                                            </a>
-                                                            {(pref.view === 'tree' || pref.view === 'network') && (
-                                                                <Tooltip
-                                                                    content={AppUtils.userMsgsList[showToolTip?.msgKey] || 'Group Nodes'}
-                                                                    visible={pref.groupNodes && showToolTip !== undefined && !showToolTip?.display}
-                                                                    duration={showToolTip?.duration}
-                                                                    zIndex={1}>
-                                                                    <a
-                                                                        className={`group-nodes-button group-nodes-button${!pref.groupNodes ? '' : '-on'}`}
-                                                                        title={pref.view === 'tree' ? 'Group Nodes' : 'Collapse Pods'}
-                                                                        onClick={() => toggleCompactView(application.metadata.name, pref)}>
-                                                                        <i className={classNames('fa fa-object-group fa-fw')} />
-                                                                    </a>
-                                                                </Tooltip>
-                                                            )}
-                                                            {!!AppUtils.getApplicationParentRef(application, appLabelKey, trackingMethod) && (
-                                                                <a
-                                                                    className={`group-nodes-button group-nodes-button${pref.showAppParent ? '-on' : ''}`}
-                                                                    title="Show application's parent node"
-                                                                    onClick={() =>
-                                                                        services.viewPreferences.updatePreferences({
-                                                                            appDetails: {...pref, showAppParent: !pref.showAppParent}
-                                                                        })
-                                                                    }>
-                                                                    <i className='fa fa-sitemap fa-fw' />
-                                                                </a>
-                                                            )}
-                                                            <span className={`separator`} />
-                                                            <a className={`group-nodes-button`} onClick={() => expandAll()} title='Expand all child nodes of all parent nodes'>
-                                                                <i className='fa fa-plus fa-fw' />
-                                                            </a>
-                                                            <a className={`group-nodes-button`} onClick={() => collapseAll()} title='Collapse all child nodes of all parent nodes'>
-                                                                <i className='fa fa-minus fa-fw' />
-                                                            </a>
-                                                            <span className={`separator`} />
-                                                            <span>
-                                                                <a className={`group-nodes-button`} onClick={() => setZoom(0.1)} title='Zoom in'>
-                                                                    <i className='fa fa-search-plus fa-fw' />
-                                                                </a>
-                                                                <a className={`group-nodes-button`} onClick={() => setZoom(-0.1)} title='Zoom out'>
-                                                                    <i className='fa fa-search-minus fa-fw' />
-                                                                </a>
-                                                                <div className={`zoom-value`}>{zoomNum}%</div>
-                                                            </span>
-                                                        </div>
+                                                        <ResourceTreeToolbar
+                                                            pref={pref}
+                                                            application={application}
+                                                            appLabelKey={appLabelKey}
+                                                            trackingMethod={trackingMethod}
+                                                            truncateNameOnRight={state.truncateNameOnRight}
+                                                            showFullNodeName={state.showFullNodeName}
+                                                            showToolTip={showToolTip}
+                                                            onToggleNameDirection={toggleNameDirection}
+                                                            onToggleNodeName={toggleNodeName}
+                                                            onToggleCompactView={() => toggleCompactView(application.metadata.name, pref)}
+                                                            onExpandAll={expandAll}
+                                                            onCollapseAll={collapseAll}
+                                                            onSetZoom={setZoom}
+                                                            onToggleAppParent={() =>
+                                                                services.viewPreferences.updatePreferences({
+                                                                    appDetails: {...pref, showAppParent: !pref.showAppParent}
+                                                                })
+                                                            }
+                                                        />
                                                         <ApplicationResourceTree {...getResourceTreeProps()} />
                                                     </>
                                                 )) ||
-                                                    (isApplication && pref.view === 'pods' && (
+                                                    (pref.view === 'pods' && (
                                                         <PodView
                                                             tree={tree}
-                                                            app={application as appModels.Application}
+                                                            app={application}
                                                             onItemClick={fullName => selectNode(fullName)}
                                                             nodeMenu={node =>
-                                                                AppUtils.renderResourceMenu(node, application as appModels.Application, tree, appContext, appChanged, () =>
-                                                                    getApplicationActionMenu(application as appModels.Application, false, true)
+                                                                AppUtils.renderResourceMenu(node, application, tree, appContext, appChanged, () =>
+                                                                    getApplicationActionMenu(application, false, true)
                                                                 )
                                                             }
-                                                            quickStarts={node =>
-                                                                AppUtils.renderResourceButtons(node, application as appModels.Application, tree, appContext, appChanged)
-                                                            }
+                                                            quickStarts={node => AppUtils.renderResourceButtons(node, application, tree, appContext, appChanged)}
                                                         />
                                                     )) ||
-                                                    (isApplication && state.extensionsMap[pref.view] != null && (
-                                                        <ExtensionView extension={state.extensionsMap[pref.view]} application={application as appModels.Application} tree={tree} />
+                                                    (state.extensionsMap[pref.view] != null && (
+                                                        <ExtensionView extension={state.extensionsMap[pref.view]} application={application} tree={tree} />
                                                     )) || (
                                                         <div>
                                                             <DataLoader load={() => services.viewPreferences.getPreferences()}>
@@ -1157,7 +989,7 @@ Are you sure you want to disable auto-sync and rollback application '${props.mat
                                                                         onClearFilter={clearFilter}
                                                                         collapsed={viewPref.hideSidebar}
                                                                         resourceNodes={allResources}
-                                                                        hideKindFilter={!isApplication}
+                                                                        hideKindFilter={false}
                                                                     />
                                                                 )}
                                                             </DataLoader>
@@ -1179,18 +1011,10 @@ Are you sure you want to disable auto-sync and rollback application '${props.mat
                                                                             requestSort={resourceSort.requestSort}
                                                                             sortIcon={resourceSort.sortIcon}
                                                                             resources={data}
-                                                                            nodeMenu={
-                                                                                isApplication
-                                                                                    ? node =>
-                                                                                          AppUtils.renderResourceMenu(
-                                                                                              node,
-                                                                                              application as appModels.Application,
-                                                                                              tree,
-                                                                                              appContext,
-                                                                                              appChanged,
-                                                                                              () => getApplicationActionMenu(application as appModels.Application, false, true)
-                                                                                          )
-                                                                                    : undefined
+                                                                            nodeMenu={node =>
+                                                                                AppUtils.renderResourceMenu(node, application, tree, appContext, appChanged, () =>
+                                                                                    getApplicationActionMenu(application, false, true)
+                                                                                )
                                                                             }
                                                                             tree={tree}
                                                                         />
@@ -1226,18 +1050,10 @@ Are you sure you want to disable auto-sync and rollback application '${props.mat
                                                             requestSort={groupedResourceSort.requestSort}
                                                             sortIcon={groupedResourceSort.sortIcon}
                                                             resources={data}
-                                                            nodeMenu={
-                                                                isApplication
-                                                                    ? node =>
-                                                                          AppUtils.renderResourceMenu(
-                                                                              node,
-                                                                              application as appModels.Application,
-                                                                              tree,
-                                                                              appContext,
-                                                                              appChanged,
-                                                                              () => getApplicationActionMenu(application as appModels.Application, false, true)
-                                                                          )
-                                                                    : undefined
+                                                            nodeMenu={node =>
+                                                                AppUtils.renderResourceMenu(node, application, tree, appContext, appChanged, () =>
+                                                                    getApplicationActionMenu(application, false, true)
+                                                                )
                                                             }
                                                             tree={tree}
                                                         />
@@ -1245,115 +1061,69 @@ Are you sure you want to disable auto-sync and rollback application '${props.mat
                                                 </Paginate>
                                             </div>
                                         </SlidingPanel>
-                                        {isApplication && (
-                                            <SlidingPanel isShown={selectedNode != null || isAppSelected} onClose={() => selectNode('')}>
-                                                <ResourceDetails
-                                                    tree={tree}
-                                                    application={application as appModels.Application}
-                                                    isAppSelected={isAppSelected}
-                                                    updateApp={(app: models.Application, query: {validate?: boolean}) => updateApp(app, query)}
-                                                    selectedNode={selectedNode}
-                                                    appCxt={{...appContext, apis: appContext} as unknown as AppContext}
-                                                    appChanged={appChanged}
-                                                />
-                                            </SlidingPanel>
-                                        )}
-                                        {!isApplication && (
-                                            <SlidingPanel isShown={selectedNode != null || isAppSelected} onClose={() => selectNode('')}>
-                                                {isAppSelected && <AppSetResourceDetails appSet={application as appModels.ApplicationSet} />}
-                                                {!isAppSelected && selectedNode && (
-                                                    <ResourceDetails
-                                                        tree={tree}
-                                                        application={application as appModels.Application}
-                                                        isAppSelected={isAppSelected}
-                                                        updateApp={(app: models.Application, query: {validate?: boolean}) => updateApp(app, query)}
-                                                        selectedNode={selectedNode}
-                                                        appCxt={{...appContext, apis: appContext} as unknown as AppContext}
-                                                        appChanged={appChanged}
-                                                        readOnlyGeneratedApplication={true}
-                                                    />
-                                                )}
-                                            </SlidingPanel>
-                                        )}
-                                        {isApplication && (
-                                            <ApplicationSyncPanel
-                                                application={application as appModels.Application}
-                                                hide={() => AppUtils.showDeploy(null, null, appContext)}
-                                                selectedResource={syncResourceKey}
+                                        <SlidingPanel isShown={selectedNode != null || isAppSelected} onClose={() => selectNode('')}>
+                                            <ResourceDetails
+                                                tree={tree}
+                                                application={application}
+                                                isAppSelected={isAppSelected}
+                                                updateApp={(app: models.Application, query: {validate?: boolean}) => updateApp(app, query)}
+                                                selectedNode={selectedNode}
+                                                appCxt={{...appContext, apis: appContext} as unknown as AppContext}
+                                                appChanged={appChanged}
                                             />
-                                        )}
-                                        {isApplication && (
-                                            <SlidingPanel isShown={selectedRollbackDeploymentIndex > -1} onClose={() => setRollbackPanelVisible(-1)}>
-                                                {selectedRollbackDeploymentIndex > -1 && (
-                                                    <ApplicationDeploymentHistory
-                                                        app={application as appModels.Application}
-                                                        rollbackApp={info => rollbackApplication(info, application as appModels.Application)}
-                                                        selectDeployment={i => setRollbackPanelVisible(i)}
-                                                    />
-                                                )}
-                                            </SlidingPanel>
-                                        )}
-                                        {isApplication && (
-                                            <SlidingPanel isShown={showOperationState && !!operationState} onClose={() => setOperationStatusVisible(false)}>
-                                                {operationState && <ApplicationOperationState application={application as appModels.Application} operationState={operationState} />}
-                                            </SlidingPanel>
-                                        )}
-                                        {isApplication && (
-                                            <SlidingPanel isShown={showHydrateOperationState && !!hydrateOperationState} onClose={() => setHydrateOperationStatusVisible(false)}>
-                                                {hydrateOperationState && <ApplicationHydrateOperationState hydrateOperationState={hydrateOperationState} />}
-                                            </SlidingPanel>
-                                        )}
-                                        <SlidingPanel isShown={showConditions && !!conditions} onClose={() => setConditionsStatusVisible(false)}>
-                                            {conditions &&
-                                                (isApplication ? (
-                                                    <ApplicationConditions conditions={conditions as appModels.ApplicationCondition[]} />
-                                                ) : (
-                                                    <ApplicationSetConditions conditions={conditions as appModels.ApplicationSetCondition[]} />
-                                                ))}
                                         </SlidingPanel>
-                                        {isApplication && (
-                                            <SlidingPanel
-                                                isShown={state.revision === 'SYNC_STATUS_REVISION' || state.revision === 'OPERATION_STATE_REVISION'}
-                                                isMiddle={true}
-                                                onClose={() => setState(prevState => ({...prevState, revision: null}))}>
-                                                {state.revision === 'SYNC_STATUS_REVISION' &&
-                                                    ((application as appModels.Application).status.sync.revisions || (application as appModels.Application).status.sync.revision) &&
-                                                    getContent(
-                                                        application as appModels.Application,
-                                                        source,
-                                                        (application as appModels.Application).status.sync.revisions,
-                                                        (application as appModels.Application).status.sync.revision
-                                                    )}
-                                                {state.revision === 'OPERATION_STATE_REVISION' &&
-                                                    ((application as appModels.Application).status.operationState.syncResult.revisions ||
-                                                        (application as appModels.Application).status.operationState.syncResult.revision) &&
-                                                    getContent(
-                                                        application as appModels.Application,
-                                                        source,
-                                                        (application as appModels.Application).status.operationState.syncResult.revisions,
-                                                        (application as appModels.Application).status.operationState.syncResult.revision
-                                                    )}
-                                            </SlidingPanel>
-                                        )}
-                                        {isApplication && (
-                                            <SlidingPanel
-                                                isShown={selectedExtension !== '' && activeStatusExt != null && activeStatusExt.flyout != null}
-                                                onClose={() => setExtensionPanelVisible('')}>
-                                                {selectedExtension !== '' && activeStatusExt?.flyout && (
-                                                    <activeStatusExt.flyout application={application as appModels.Application} tree={tree} />
+                                        <ApplicationSyncPanel
+                                            application={application}
+                                            hide={() => AppUtils.showDeploy(null, null, appContext)}
+                                            selectedResource={syncResourceKey}
+                                        />
+                                        <SlidingPanel isShown={selectedRollbackDeploymentIndex > -1} onClose={() => setRollbackPanelVisible(-1)}>
+                                            {selectedRollbackDeploymentIndex > -1 && (
+                                                <ApplicationDeploymentHistory
+                                                    app={application}
+                                                    rollbackApp={info => rollbackApplication(info, application)}
+                                                    selectDeployment={i => setRollbackPanelVisible(i)}
+                                                />
+                                            )}
+                                        </SlidingPanel>
+                                        <SlidingPanel isShown={showOperationState && !!operationState} onClose={() => setOperationStatusVisible(false)}>
+                                            {operationState && <ApplicationOperationState application={application} operationState={operationState} />}
+                                        </SlidingPanel>
+                                        <SlidingPanel isShown={showHydrateOperationState && !!hydrateOperationState} onClose={() => setHydrateOperationStatusVisible(false)}>
+                                            {hydrateOperationState && <ApplicationHydrateOperationState hydrateOperationState={hydrateOperationState} />}
+                                        </SlidingPanel>
+                                        <SlidingPanel isShown={showConditions && !!conditions} onClose={() => setConditionsStatusVisible(false)}>
+                                            {conditions && <ApplicationConditions conditions={conditions as appModels.ApplicationCondition[]} />}
+                                        </SlidingPanel>
+                                        <SlidingPanel
+                                            isShown={state.revision === 'SYNC_STATUS_REVISION' || state.revision === 'OPERATION_STATE_REVISION'}
+                                            isMiddle={true}
+                                            onClose={() => setState(prevState => ({...prevState, revision: null}))}>
+                                            {state.revision === 'SYNC_STATUS_REVISION' &&
+                                                (application.status.sync.revisions || application.status.sync.revision) &&
+                                                getContent(application, source, application.status.sync.revisions, application.status.sync.revision)}
+                                            {state.revision === 'OPERATION_STATE_REVISION' &&
+                                                (application.status.operationState.syncResult.revisions || application.status.operationState.syncResult.revision) &&
+                                                getContent(
+                                                    application,
+                                                    source,
+                                                    application.status.operationState.syncResult.revisions,
+                                                    application.status.operationState.syncResult.revision
                                                 )}
-                                            </SlidingPanel>
-                                        )}
-                                        {isApplication && (
-                                            <SlidingPanel
-                                                isMiddle={activeTopBarActionMenuExt?.isMiddle ?? true}
-                                                isShown={selectedExtension !== '' && activeTopBarActionMenuExt != null && activeTopBarActionMenuExt.flyout != null}
-                                                onClose={() => setExtensionPanelVisible('')}>
-                                                {selectedExtension !== '' && activeTopBarActionMenuExt?.flyout && (
-                                                    <activeTopBarActionMenuExt.flyout application={application as appModels.Application} tree={tree} />
-                                                )}
-                                            </SlidingPanel>
-                                        )}
+                                        </SlidingPanel>
+                                        <SlidingPanel
+                                            isShown={selectedExtension !== '' && activeStatusExt != null && activeStatusExt.flyout != null}
+                                            onClose={() => setExtensionPanelVisible('')}>
+                                            {selectedExtension !== '' && activeStatusExt?.flyout && <activeStatusExt.flyout application={application} tree={tree} />}
+                                        </SlidingPanel>
+                                        <SlidingPanel
+                                            isMiddle={activeTopBarActionMenuExt?.isMiddle ?? true}
+                                            isShown={selectedExtension !== '' && activeTopBarActionMenuExt != null && activeTopBarActionMenuExt.flyout != null}
+                                            onClose={() => setExtensionPanelVisible('')}>
+                                            {selectedExtension !== '' && activeTopBarActionMenuExt?.flyout && (
+                                                <activeTopBarActionMenuExt.flyout application={application} tree={tree} />
+                                            )}
+                                        </SlidingPanel>
                                     </Page>
                                 </div>
                             );
@@ -1483,7 +1253,7 @@ Are you sure you want to disable auto-sync and rollback application '${props.mat
                     disabled: !!refreshing,
                     action: () => {
                         if (!refreshing) {
-                            services.applications.get(app.metadata.name, app.metadata.namespace, objectListKind, 'normal');
+                            services.applications.get(app.metadata.name, app.metadata.namespace, 'application', 'normal');
                             AppUtils.setAppRefreshing(app);
                             appChanged.next(app);
                         }
@@ -1491,39 +1261,13 @@ Are you sure you want to disable auto-sync and rollback application '${props.mat
                     subActions: [
                         {
                             title: 'Hard Refresh',
-                            action: () => !refreshing && services.applications.get(app.metadata.name, app.metadata.namespace, objectListKind, 'hard')
+                            action: () => !refreshing && services.applications.get(app.metadata.name, app.metadata.namespace, 'application', 'hard')
                         }
                     ]
                 } as SplitButtonAction
             ];
         },
-        [selectNode, appContext, confirmDeletion, setOperationStatusVisible, setRollbackPanelVisible, deleteApplication, objectListKind, appChanged]
-    );
-
-    const filterTreeNode = useCallback(
-        (node: ResourceTreeNode, filterInput: FilterInput): boolean => {
-            const syncStatuses = filterInput.sync.map(item => (item === 'OutOfSync' ? ['OutOfSync', 'Unknown'] : [item])).reduce((first, second) => first.concat(second), []);
-
-            const root = node.root || ({} as ResourceTreeNode);
-            const hook = root && root.hook;
-            if (
-                (filterInput.name.length === 0 || nodeNameMatchesWildcardFilters(node.name, filterInput.name)) &&
-                (filterInput.kind.length === 0 || filterInput.kind.indexOf(node.kind) > -1) &&
-                // include if node's root sync matches filter
-                (syncStatuses.length === 0 || hook || (root.status && syncStatuses.indexOf(root.status) > -1)) &&
-                // include if node or node's root health matches filter
-                (filterInput.health.length === 0 ||
-                    hook ||
-                    (root.health && filterInput.health.indexOf(root.health.status) > -1) ||
-                    (node.health && filterInput.health.indexOf(node.health.status) > -1)) &&
-                (filterInput.namespace.length === 0 || filterInput.namespace.includes(node.namespace))
-            ) {
-                return true;
-            }
-
-            return false;
-        },
-        [nodeNameMatchesWildcardFilters]
+        [selectNode, appContext, confirmDeletion, setOperationStatusVisible, setRollbackPanelVisible, deleteApplication, appChanged]
     );
 
     const onAppDeleted = useCallback(() => {
@@ -1532,70 +1276,20 @@ Are you sure you want to disable auto-sync and rollback application '${props.mat
     }, [appContext, props.match.params.name]);
 
     const loadAppInfo = useCallback(
-        (name: string, appNamespace: string): Observable<{application: appModels.AbstractApplication; tree: appModels.AbstractApplicationTree}> => {
-            return from(services.applications.get(name, appNamespace, objectListKind))
-                .pipe(
-                    mergeMap(app => {
-                        const fallbackTree = {
-                            nodes:
-                                app.status?.resources?.map((res: appModels.ResourceStatus) => ({
-                                    ...res,
-                                    parentRefs: [] as appModels.ResourceRef[],
-                                    info: [] as appModels.InfoItem[],
-                                    resourceVersion: '',
-                                    uid: ''
-                                })) || [],
-                            orphanedNodes: [] as appModels.ResourceNode[],
-                            hosts: [] as appModels.Node[]
-                        } as appModels.ApplicationTree;
-                        return combineLatest(
-                            merge(
-                                from([app]),
-                                appChanged.pipe(filter(item => !!item)),
-                                AppUtils.handlePageVisibility(() =>
-                                    services.applications
-                                        .watch(objectListKind, {name, appNamespace})
-                                        .pipe(
-                                            map(watchEvent => {
-                                                if (watchEvent.type === 'DELETED') {
-                                                    onAppDeleted();
-                                                }
-                                                return watchEvent.application;
-                                            })
-                                        )
-                                        .pipe(repeat())
-                                        .pipe(retry({delay: 500}))
-                                )
-                            ),
-                            merge(
-                                from([fallbackTree]),
-                                services.applications.resourceTree(name, appNamespace, objectListKind).catch(() => fallbackTree),
-                                AppUtils.handlePageVisibility(() =>
-                                    services.applications
-                                        .watchResourceTree(name, appNamespace, objectListKind)
-                                        .pipe(repeat())
-                                        .pipe(retry({delay: 500}))
-                                )
-                            )
-                        );
-                    })
-                )
-                .pipe(filter(([application, tree]) => !!application && !!tree))
-                .pipe(map(([application, tree]) => ({application, tree})));
-        },
-        [onAppDeleted, objectListKind, appChanged]
+        (name: string, appNamespace: string) => loadApplicationInfo(name, appNamespace, 'application', appChanged, onAppDeleted),
+        [onAppDeleted, appChanged]
     );
 
     const updateApp = useCallback(
         async (app: appModels.Application, query: {validate?: boolean}) => {
-            const latestApp = await services.applications.get(app.metadata.name, app.metadata.namespace, objectListKind);
+            const latestApp = await services.applications.get(app.metadata.name, app.metadata.namespace, 'application');
             latestApp.metadata.labels = app.metadata.labels;
             latestApp.metadata.annotations = app.metadata.annotations;
             latestApp.spec = app.spec;
             const updatedApp = await services.applications.update(latestApp, query);
             appChanged.next(updatedApp);
         },
-        [objectListKind, appChanged]
+        [appChanged]
     );
 
     const groupAppNodesByKey = useCallback((application: appModels.Application, tree: appModels.ApplicationTree) => {
@@ -1605,42 +1299,9 @@ Are you sure you want to disable auto-sync and rollback application '${props.mat
         return nodeByKey;
     }, []);
 
-    const getTreeFilter = useCallback((filterInput: string[]): FilterInput => {
-        const name = new Array<string>();
-        const kind = new Array<string>();
-        const health = new Array<string>();
-        const sync = new Array<string>();
-        const namespace = new Array<string>();
-        for (const item of filterInput || []) {
-            const [type, val] = item.split(':');
-            switch (type) {
-                case 'name':
-                    name.push(val);
-                    break;
-                case 'kind':
-                    kind.push(val);
-                    break;
-                case 'health':
-                    health.push(val);
-                    break;
-                case 'sync':
-                    sync.push(val);
-                    break;
-                case 'namespace':
-                    namespace.push(val);
-                    break;
-            }
-        }
-        return {kind, health, sync, namespace, name};
-    }, []);
-
     // Return the render function
     return render();
 };
-
-// ApplicationDetails is the Application-kind entry point: a thin wrapper that
-// pins the shared shell to the 'application' kind.
-export const ApplicationDetails: FC<RouteComponentProps<{appnamespace: string; name: string}>> = props => <AbstractApplicationDetails {...props} objectListKind='application' />;
 
 const ExtensionView = (props: {extension: AppViewExtension; application: models.Application; tree: models.ApplicationTree}) => {
     const {extension, application, tree} = props;

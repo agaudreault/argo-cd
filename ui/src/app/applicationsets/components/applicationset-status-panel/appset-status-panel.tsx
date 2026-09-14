@@ -6,7 +6,7 @@ import * as models from '../../../shared/models';
 import {getAppSetConditionCategory, getAppSetHealthStatus} from '../../../shared/applications/utils';
 import {HealthStatusIcon} from '../../../shared/components/app-utils';
 
-import '../../../applications/components/application-status-panel/application-status-panel.scss';
+import './appset-status-panel.scss';
 
 interface Props {
     appSet: models.ApplicationSet;

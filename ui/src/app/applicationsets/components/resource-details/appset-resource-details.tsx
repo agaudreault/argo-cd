@@ -11,7 +11,7 @@ import {ResourceLabel} from '../../../applications/components/resource-label';
 import {HealthStatusIcon} from '../../../shared/components/app-utils';
 import {getAppSetHealthStatus, getAppSetConditionCategory} from '../../../shared/applications/utils';
 import {AppSetPreviewTab} from './appset-preview-tab';
-import '../../../applications/components/resource-details/resource-details.scss';
+import './resource-details.scss';
 
 interface AppSetResourceDetailsProps {
     appSet: models.ApplicationSet;

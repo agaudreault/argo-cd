@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import * as models from '../../../shared/models';
 import {AppSetGeneratedAppsDiff} from './appset-generated-apps-diff';
-import '../../../applications/components/resource-details/resource-details.scss';
+import './resource-details.scss';
 
 interface AppSetResourceNodePreviewProps {
     liveAppSet: any;

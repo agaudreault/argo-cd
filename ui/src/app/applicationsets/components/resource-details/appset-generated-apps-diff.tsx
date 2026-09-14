@@ -7,7 +7,7 @@ import {MonacoEditor} from '../../../shared/components/monaco-editor';
 import {lazyWithBoundary} from '../../../shared/components/lazy-with-boundary';
 import * as models from '../../../shared/models';
 import {services} from '../../../shared/services';
-import '../../../applications/components/resource-details/resource-details.scss';
+import './resource-details.scss';
 
 const ApplicationResourcesDiff = lazyWithBoundary(
     React.lazy(() =>

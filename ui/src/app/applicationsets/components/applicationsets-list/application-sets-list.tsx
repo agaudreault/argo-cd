@@ -23,9 +23,9 @@ import {lazyWithBoundary} from '../../../shared/components/lazy-with-boundary';
 import {useItemsPerContainer} from '../../../shared/applications/list/use-items-per-container';
 import {ViewTypeSwitcher} from '../../../applications/components/applications-list/view-type-switcher';
 
-import '../../../applications/components/applications-list/applications-list.scss';
-import '../../../applications/components/applications-list/applications-table.scss';
-import '../../../applications/components/applications-list/applications-tiles.scss';
+import './applications-list.scss';
+import './applications-table.scss';
+import './applications-tiles.scss';
 
 const ApplicationSetsSummary = lazyWithBoundary(
     React.lazy(() => import(/* webpackChunkName: "appset-summary" */ './application-sets-summary').then(m => ({default: m.ApplicationSetsSummary}))),
