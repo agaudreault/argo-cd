@@ -4,7 +4,8 @@ const PieChart = require('react-svg-piechart').default;
 import {COLORS} from '../../../shared/components';
 import * as models from '../../../shared/models';
 import {HealthStatusCode} from '../../../shared/models';
-import {HealthStatusIcon, getAppSetHealthStatus} from '../utils';
+import {HealthStatusIcon} from '../../../shared/components/app-utils';
+import {getAppSetHealthStatus} from '../../../shared/applications/utils';
 
 const appSetHealthColors = new Map<models.HealthStatusCode, string>();
 appSetHealthColors.set('Unknown', COLORS.health.unknown);

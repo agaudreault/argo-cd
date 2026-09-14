@@ -12,19 +12,20 @@ import {AppsListPreferences, AppsListViewKey, AppsListViewType, AppSetsListPrefe
 import {useSidebarTarget} from '../../../sidebar/sidebar';
 import {useObservableQuery} from '../../../shared/hooks/query';
 import {isInvalidRegex} from '../../../shared/utils';
-import * as AppUtils from '../utils';
-import {AppSetsFilter, ApplicationSetFilteredApp, getAppSetFilterResults} from './applications-filter';
-import {createMatcher} from './applications-list-search';
-import {AppSetsStatusBar} from './applications-status-bar';
+import * as AppUtils from '../../../applications/components/utils';
+import {AppSetsFilter, ApplicationSetFilteredApp, getAppSetFilterResults} from '../../../applications/components/applications-list/applications-filter';
+import {createMatcher} from '../../../applications/components/applications-list/applications-list-search';
+import {AppSetsStatusBar} from '../../../applications/components/applications-list/applications-status-bar';
 import {AppSetTile} from './appset-tile';
 import {AppSetTableRow} from './appset-table-row';
 import {FlexTopBar} from '../../../shared/components';
 import {lazyWithBoundary} from '../../../shared/components/lazy-with-boundary';
-import {ViewTypeSwitcher} from './view-type-switcher';
+import {useItemsPerContainer} from '../../../shared/applications/list/use-items-per-container';
+import {ViewTypeSwitcher} from '../../../applications/components/applications-list/view-type-switcher';
 
-import './applications-list.scss';
-import './applications-table.scss';
-import './applications-tiles.scss';
+import '../../../applications/components/applications-list/applications-list.scss';
+import '../../../applications/components/applications-list/applications-table.scss';
+import '../../../applications/components/applications-list/applications-tiles.scss';
 
 const ApplicationSetsSummary = lazyWithBoundary(
     React.lazy(() => import(/* webpackChunkName: "appset-summary" */ './application-sets-summary').then(m => ({default: m.ApplicationSetsSummary}))),
@@ -229,33 +230,6 @@ const ApplicationSetsToolbar = (props: {
             </Tooltip>
         </div>
     );
-};
-
-const useItemsPerContainer = (itemRef: any, containerRef: any): number => {
-    const [itemsPer, setItemsPer] = React.useState(0);
-
-    React.useEffect(() => {
-        const handleResize = () => {
-            let timeoutId: any;
-            clearTimeout(timeoutId);
-            timeoutId = setTimeout(() => {
-                timeoutId = null;
-                const itemWidth = itemRef.current ? itemRef.current.offsetWidth : -1;
-                const containerWidth = containerRef.current ? containerRef.current.offsetWidth : -1;
-                const curItemsPer = containerWidth > 0 && itemWidth > 0 ? Math.floor(containerWidth / itemWidth) : 1;
-                if (curItemsPer !== itemsPer) {
-                    setItemsPer(curItemsPer);
-                }
-            }, 1000);
-        };
-        window.addEventListener('resize', handleResize);
-        handleResize();
-        return () => {
-            window.removeEventListener('resize', handleResize);
-        };
-    }, []);
-
-    return itemsPer || 1;
 };
 
 const ApplicationSetTiles = ({appSets}: {appSets: models.ApplicationSet[]}) => {

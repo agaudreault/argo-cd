@@ -6,11 +6,12 @@ import {Timestamp} from '../../../shared/components/timestamp';
 import * as models from '../../../shared/models';
 import {services} from '../../../shared/services';
 import {Context} from '../../../shared/context';
-import {ResourceIcon} from '../resource-icon';
-import {ResourceLabel} from '../resource-label';
-import {HealthStatusIcon, getAppSetHealthStatus, getAppSetConditionCategory} from '../utils';
+import {ResourceIcon} from '../../../applications/components/resource-icon';
+import {ResourceLabel} from '../../../applications/components/resource-label';
+import {HealthStatusIcon} from '../../../shared/components/app-utils';
+import {getAppSetHealthStatus, getAppSetConditionCategory} from '../../../shared/applications/utils';
 import {AppSetPreviewTab} from './appset-preview-tab';
-import './resource-details.scss';
+import '../../../applications/components/resource-details/resource-details.scss';
 
 interface AppSetResourceDetailsProps {
     appSet: models.ApplicationSet;

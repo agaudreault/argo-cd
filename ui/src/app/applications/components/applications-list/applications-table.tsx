@@ -4,15 +4,13 @@ import {Key, KeybindingContext, useNav} from 'argo-ui/v2';
 import {Consumer, Context} from '../../../shared/context';
 import * as models from '../../../shared/models';
 import * as AppUtils from '../utils';
-import {isApp} from '../utils';
 import {services} from '../../../shared/services';
 import {ApplicationTableRow} from './application-table-row';
-import {AppSetTableRow} from './appset-table-row';
 
 import './applications-table.scss';
 
 export const ApplicationsTable = (props: {
-    applications: models.AbstractApplication[];
+    applications: models.Application[];
     syncApplication: (appName: string, appNamespace: string) => any;
     refreshApplication: (appName: string, appNamespace: string) => any;
     deleteApplication: (appName: string, appNamespace: string) => any;
@@ -48,22 +46,18 @@ export const ApplicationsTable = (props: {
                 <DataLoader load={() => services.viewPreferences.getPreferences()}>
                     {pref => (
                         <div className='applications-table argo-table-list argo-table-list--clickable'>
-                            {props.applications.map((app, i) =>
-                                isApp(app) ? (
-                                    <ApplicationTableRow
-                                        key={AppUtils.appInstanceName(app)}
-                                        app={app as models.Application}
-                                        selected={selectedApp === i}
-                                        pref={pref}
-                                        ctx={ctx}
-                                        syncApplication={props.syncApplication}
-                                        refreshApplication={props.refreshApplication}
-                                        deleteApplication={props.deleteApplication}
-                                    />
-                                ) : (
-                                    <AppSetTableRow key={AppUtils.appInstanceName(app)} appSet={app as models.ApplicationSet} selected={selectedApp === i} pref={pref} ctx={ctx} />
-                                )
-                            )}
+                            {props.applications.map((app, i) => (
+                                <ApplicationTableRow
+                                    key={AppUtils.appInstanceName(app)}
+                                    app={app}
+                                    selected={selectedApp === i}
+                                    pref={pref}
+                                    ctx={ctx}
+                                    syncApplication={props.syncApplication}
+                                    refreshApplication={props.refreshApplication}
+                                    deleteApplication={props.deleteApplication}
+                                />
+                            ))}
                         </div>
                     )}
                 </DataLoader>

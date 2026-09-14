@@ -16,7 +16,7 @@ import {ApplicationNodeInfo} from '../application-node-info/application-node-inf
 import {ApplicationParameters} from '../application-parameters/application-parameters';
 import type {ResourceTreeNode} from '../application-resource-tree/application-resource-tree';
 import {ApplicationSummary} from '../application-summary/application-summary';
-import {AppSetResourceNodePreview} from './appset-resource-node-preview';
+import {AppSetResourceNodePreview} from '../../../applicationsets/components/resource-details/appset-resource-node-preview';
 import {ResourceIcon} from '../resource-icon';
 import {ResourceLabel} from '../resource-label';
 import * as AppUtils from '../utils';

@@ -7,11 +7,13 @@ import {MonacoEditor} from '../../../shared/components/monaco-editor';
 import {lazyWithBoundary} from '../../../shared/components/lazy-with-boundary';
 import * as models from '../../../shared/models';
 import {services} from '../../../shared/services';
-import './resource-details.scss';
+import '../../../applications/components/resource-details/resource-details.scss';
 
 const ApplicationResourcesDiff = lazyWithBoundary(
     React.lazy(() =>
-        import(/* webpackChunkName: "app-resources-diff" */ '../application-resources-diff/application-resources-diff').then(m => ({default: m.ApplicationResourcesDiff}))
+        import(/* webpackChunkName: "app-resources-diff" */ '../../../applications/components/application-resources-diff/application-resources-diff').then(m => ({
+            default: m.ApplicationResourcesDiff
+        }))
     ),
     'Failed to load diff. Please reload and try again.'
 );

@@ -12,18 +12,19 @@ import {AppContext, AuthSettingsCtx, Context, ContextApis} from '../../../shared
 import * as appModels from '../../../shared/models';
 import {AppDetailsPreferences, AppsDetailsViewKey, AppsDetailsViewType, services} from '../../../shared/services';
 
-import {ApplicationConditions, ApplicationSetConditions} from '../application-conditions/application-conditions';
+import {ApplicationConditions} from '../application-conditions/application-conditions';
+import {ApplicationSetConditions} from '../../../applicationsets/components/applicationset-conditions/applicationset-conditions';
 import {NoticeBanner} from '../application-notice/notice-banner';
 import {ApplicationDeploymentHistory} from '../application-deployment-history/application-deployment-history';
 import {ApplicationOperationState} from '../application-operation-state/application-operation-state';
 import {PodGroupType, PodView} from '../application-pod-view/pod-view';
 import {ApplicationResourceTree, type ResourceTreeNode} from '../application-resource-tree/application-resource-tree';
 import {ApplicationStatusPanel} from '../application-status-panel/application-status-panel';
-import {ApplicationSetStatusPanel} from '../application-status-panel/appset-status-panel';
+import {ApplicationSetStatusPanel} from '../../../applicationsets/components/applicationset-status-panel/appset-status-panel';
 import {ApplicationSyncPanel} from '../application-sync-panel/application-sync-panel';
 import {isApp} from '../utils';
 import {ResourceDetails} from '../resource-details/resource-details';
-import {AppSetResourceDetails} from '../resource-details/appset-resource-details';
+import {AppSetResourceDetails} from '../../../applicationsets/components/resource-details/appset-resource-details';
 import * as AppUtils from '../utils';
 import {ApplicationResourceList, ApplicationResourceParentRef} from './application-resource-list';
 import {APPLICATION_DETAILS_SORT_KEY, ApplicationResourceSortKey, compareApplicationResource, GROUPED_NODES_DETAILS_SORT_KEY} from './application-resource-sort';

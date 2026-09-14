@@ -3,9 +3,10 @@ import * as React from 'react';
 import {ARGO_GRAY6_COLOR} from '../../../shared/components';
 import {Timestamp} from '../../../shared/components/timestamp';
 import * as models from '../../../shared/models';
-import {getAppSetConditionCategory, getAppSetHealthStatus, HealthStatusIcon} from '../utils';
+import {getAppSetConditionCategory, getAppSetHealthStatus} from '../../../shared/applications/utils';
+import {HealthStatusIcon} from '../../../shared/components/app-utils';
 
-import './application-status-panel.scss';
+import '../../../applications/components/application-status-panel/application-status-panel.scss';
 
 interface Props {
     appSet: models.ApplicationSet;

@@ -2,8 +2,8 @@ import {Tooltip} from 'argo-ui';
 import * as React from 'react';
 import {ContextApis, AuthSettingsCtx} from '../../../shared/context';
 import * as models from '../../../shared/models';
-import * as AppUtils from '../utils';
-import {getAppSetHealthStatus} from '../utils';
+import * as AppUtils from '../../../applications/components/utils';
+import {getAppSetHealthStatus} from '../../../shared/applications/utils';
 import {services} from '../../../shared/services';
 import {ViewPreferences} from '../../../shared/services';
 
