@@ -87,7 +87,15 @@ export const SelectNode = (fullName: string, containerIndex = 0, tab: string = n
     appContext.navigation.goto('.', clearHighlight ? {node, tab, highlight: null} : {node, tab}, {replace: true});
 };
 
-export const ApplicationDetails: FC<RouteComponentProps<{appnamespace: string; name: string}> & {objectListKind: string}> = props => {
+export type ObjectListKind = 'application' | 'applicationset';
+
+export type AbstractApplicationDetailsProps = RouteComponentProps<{appnamespace: string; name: string}> & {objectListKind: ObjectListKind};
+
+// AbstractApplicationDetails is the shared details shell used by both the
+// Application and ApplicationSet views. The concrete kind is supplied by the
+// thin per-kind wrappers (ApplicationDetails / ApplicationSetDetails) so callers
+// never thread the kind string themselves.
+export const AbstractApplicationDetails: FC<AbstractApplicationDetailsProps> = props => {
     const appContext = useContext(Context);
     const authSettings = useContext(AuthSettingsCtx);
     const appLabelKey = authSettings?.appLabelKey;
@@ -1262,7 +1270,7 @@ Are you sure you want to disable auto-sync and rollback application '${props.mat
                                                         selectedNode={selectedNode}
                                                         appCxt={{...appContext, apis: appContext} as unknown as AppContext}
                                                         appChanged={appChanged}
-                                                        generatedAppNode={true}
+                                                        readOnlyGeneratedApplication={true}
                                                     />
                                                 )}
                                             </SlidingPanel>
@@ -1629,6 +1637,10 @@ Are you sure you want to disable auto-sync and rollback application '${props.mat
     // Return the render function
     return render();
 };
+
+// ApplicationDetails is the Application-kind entry point: a thin wrapper that
+// pins the shared shell to the 'application' kind.
+export const ApplicationDetails: FC<RouteComponentProps<{appnamespace: string; name: string}>> = props => <AbstractApplicationDetails {...props} objectListKind='application' />;
 
 const ExtensionView = (props: {extension: AppViewExtension; application: models.Application; tree: models.ApplicationTree}) => {
     const {extension, application, tree} = props;

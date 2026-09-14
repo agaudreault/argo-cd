@@ -47,10 +47,10 @@ interface ResourceDetailsProps {
     tree: ApplicationTree;
     appCxt: AppContext;
     appChanged?: BehaviorSubject<models.AbstractApplication>;
-    // generatedAppNode renders a read-only view of a generated Application node (e.g. under an ApplicationSet):
+    // readOnlyGeneratedApplication renders a read-only view of a generated Application node (e.g. under an ApplicationSet):
     // its live manifest is loaded from the Application itself, no diff/desired manifest is shown, there are
     // no sync/resource actions, and only "Open Application" and "Delete" buttons are available.
-    generatedAppNode?: boolean;
+    readOnlyGeneratedApplication?: boolean;
 }
 
 export const ResourceDetails = (props: ResourceDetailsProps) => {
@@ -312,7 +312,7 @@ export const ResourceDetails = (props: ResourceDetailsProps) => {
                     noLoaderOnInputChange={true}
                     input={selectedNode.resourceVersion}
                     load={async () => {
-                        if (props.generatedAppNode) {
+                        if (props.readOnlyGeneratedApplication) {
                             // Read-only view of a generated Application node: load the live manifest from the
                             // Application itself (the parent object is an ApplicationSet, not an Application).
                             const loaded = await services.applications
@@ -404,7 +404,7 @@ export const ResourceDetails = (props: ResourceDetailsProps) => {
                                 <div className='resource-details__header-name'>
                                     <h1 className='resource-details__header-title'>{selectedNode.name}</h1>
                                     <span className='resource-details__header-status'>
-                                        {props.generatedAppNode ? (
+                                        {props.readOnlyGeneratedApplication ? (
                                             (() => {
                                                 const generatedApp = data.liveState as unknown as Application;
                                                 return (
@@ -431,7 +431,7 @@ export const ResourceDetails = (props: ResourceDetailsProps) => {
                                     </span>
                                 </div>
                                 <div className='resource-details__header-actions'>
-                                    {props.generatedAppNode &&
+                                    {props.readOnlyGeneratedApplication &&
                                         (() => {
                                             const linkInfo = AppUtils.getApplicationLinkURLFromNode(selectedNode, appContext.baseHref);
                                             return (
@@ -466,7 +466,7 @@ export const ResourceDetails = (props: ResourceDetailsProps) => {
                                             <i className='fa fa-fw fa-info-circle' /> <span className='show-for-large'>DETAILS</span>
                                         </button>
                                     )}
-                                    {!showApplicationReference && !props.generatedAppNode && (
+                                    {!showApplicationReference && !props.readOnlyGeneratedApplication && (
                                         <>
                                             {/* Sync button is only shown if the node is managed directly by an Application */}
                                             {data.controlledState && (
@@ -487,7 +487,7 @@ export const ResourceDetails = (props: ResourceDetailsProps) => {
                                             </button>
                                         </>
                                     )}
-                                    {data.resourceActionsMenuItems?.length > 0 && !showApplicationReference && !props.generatedAppNode && (
+                                    {data.resourceActionsMenuItems?.length > 0 && !showApplicationReference && !props.readOnlyGeneratedApplication && (
                                         <DropDown
                                             isMenu={true}
                                             anchor={() => (
@@ -500,7 +500,7 @@ export const ResourceDetails = (props: ResourceDetailsProps) => {
                                     )}
                                 </div>
                             </div>
-                            {props.generatedAppNode && data.denied ? (
+                            {props.readOnlyGeneratedApplication && data.denied ? (
                                 <div className='white-box'>
                                     <div className='white-box__details'>You do not have permission to view this Application.</div>
                                 </div>
@@ -526,8 +526,8 @@ export const ResourceDetails = (props: ResourceDetailsProps) => {
                                                         node={selectedNode}
                                                         links={data.links}
                                                         showApplicationReference={showApplicationReference}
-                                                        readonly={props.generatedAppNode || showApplicationReference}
-                                                        generatedAppNode={props.generatedAppNode}
+                                                        readonly={props.readOnlyGeneratedApplication || showApplicationReference}
+                                                        readOnlyGeneratedApplication={props.readOnlyGeneratedApplication}
                                                     />
                                                 )
                                             }
