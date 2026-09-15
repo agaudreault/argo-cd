@@ -1352,32 +1352,9 @@ export function appRBACName(app: appModels.Application): string {
     return `${project}/${name}`;
 }
 
-/**
- * Key under which an application is stored in the favorites list. Favorites are namespace-qualified so
- * that applications sharing a name across namespaces (apps-in-any-namespace) can be favorited separately.
- **/
-export function favoriteKey(app: appModels.AbstractApplication): string {
-    return app.metadata.namespace + '/' + app.metadata.name;
-}
-
-/**
- * Returns true if the application is in the favorites list. Entries without a namespace are matched on
- * name alone, so favorites stored before the list became namespace-qualified keep working.
- **/
-export function isFavorite(favorites: string[], app: appModels.AbstractApplication): boolean {
-    return (favorites || []).some(favorite => favorite === favoriteKey(app) || favorite === app.metadata.name);
-}
-
-/**
- * Returns a new favorites list with the application added or removed.
- **/
-export function toggleFavorite(favorites: string[], app: appModels.AbstractApplication): string[] {
-    const list = favorites || [];
-    if (isFavorite(list, app)) {
-        return list.filter(favorite => favorite !== favoriteKey(app) && favorite !== app.metadata.name);
-    }
-    return [...list, favoriteKey(app)];
-}
+// Favorite helpers now live in shared/components/filters; re-exported here so existing
+// AppUtils.favoriteKey / isFavorite / toggleFavorite callers keep working.
+export {favoriteKey, isFavorite, toggleFavorite} from '../../shared/components/filters/favorite';
 
 /*
  * formatStatefulSetChange reformats a single line describing changes to immutable fields in a StatefulSet.
@@ -1417,34 +1394,10 @@ export function formatOperationMessage(message: string): string {
     return message;
 }
 
-export interface AppListLink {
-    /** Relative path for in-app navigation via ctx.navigation.goto. */
-    path: string;
-    /** Full base-href-prefixed href so native middle-click / right-click / status-bar URL preview work. */
-    href: string;
-    /** SPA navigation on a plain click; modifier-clicks fall through to the browser (open in new tab/window). */
-    onClick: (e: React.MouseEvent<HTMLAnchorElement>) => void;
-}
-
-// Builds the link target shared by every application / applicationset list row and tile.
-// `view` is the Application details view (e.g. 'tree'); AppSet pages don't support it, so
-// callers omit it there and the URL stays view-less.
-export function getAppListLink(ctx: ContextApis, app: appModels.AbstractApplication, view?: string): AppListLink {
-    const url = getAppUrl(app);
-    const path = `/${url}`;
-    const query = view ? {view} : {};
-    return {
-        path,
-        href: `${ctx.baseHref}${url}${view ? `?view=${encodeURIComponent(view)}` : ''}`,
-        onClick: (e: React.MouseEvent<HTMLAnchorElement>) => {
-            if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) {
-                return;
-            }
-            e.preventDefault();
-            ctx.navigation.goto(path, query, {event: e});
-        }
-    };
-}
+// AppListLink / getAppListLink now live in shared/components/resource-helpers; re-exported here so
+// existing AppUtils.getAppListLink callers keep working.
+export {getAppListLink} from '../../shared/components/resource-helpers';
+export type {AppListLink} from '../../shared/components/resource-helpers';
 
 /** RollingSync step for display; backend uses -1 when no step matches the app's labels. */
 export const getProgressiveSyncStatusIcon = ({status, isButton}: {status: string; isButton?: boolean}) => {

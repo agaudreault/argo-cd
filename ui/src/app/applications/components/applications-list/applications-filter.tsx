@@ -1,4 +1,4 @@
-import {useData, Checkbox} from 'argo-ui/v2';
+import {useData} from 'argo-ui/v2';
 import * as minimatch from 'minimatch';
 import * as React from 'react';
 import {
@@ -15,8 +15,8 @@ import {
 } from '../../../shared/models';
 import {AppsListPreferences, services} from '../../../shared/services';
 import {Filter, FiltersGroup} from '../../../shared/components/filter/filter';
-import {createMetadataSelector} from '../selectors';
-import {ComparisonStatusIcon, getAppAllSources, HealthStatusIcon, getOperationStateTitle, isFavorite} from '../utils';
+import {createMetadataSelector, FavoriteFilter, LabelsFilter, isFavorite} from '../../../shared/components/filters';
+import {ComparisonStatusIcon, getAppAllSources, HealthStatusIcon, getOperationStateTitle} from '../utils';
 import {formatClusterQueryParam} from '../../../shared/utils';
 import {COLORS} from '../../../shared/components/colors';
 
@@ -174,34 +174,6 @@ const AppHealthFilter = (props: AppFilterProps) => (
     />
 );
 
-export const LabelsFilter = React.memo(
-    (props: {apps: Array<{metadata: {labels?: {[key: string]: string}}}>; pref: {labelsFilter: string[]}; onChange: (labelsFilter: string[]) => void}) => {
-        const labelOptions = React.useMemo(() => {
-            const labels = new Map<string, Set<string>>();
-            props.apps
-                .filter(app => app.metadata && app.metadata.labels)
-                .forEach(app =>
-                    Object.keys(app.metadata.labels).forEach(label => {
-                        let values = labels.get(label);
-                        if (!values) {
-                            values = new Set<string>();
-                            labels.set(label, values);
-                        }
-                        values.add(app.metadata.labels[label]);
-                    })
-                );
-            const suggestions: string[] = [];
-            labels.forEach((values, label) => {
-                suggestions.push(label);
-                values.forEach(val => suggestions.push(`${label}=${val}`));
-            });
-            return suggestions.map(s => ({label: s}));
-        }, [props.apps]);
-
-        return <Filter label='LABELS' selected={props.pref.labelsFilter} setSelected={s => props.onChange(s)} field={true} options={labelOptions} />;
-    }
-);
-
 const AnnotationsFilter = React.memo((props: AppFilterProps) => {
     const annotationOptions = React.useMemo(() => {
         const annotations = new Map<string, Set<string>>();
@@ -338,30 +310,6 @@ const RepoFilter = React.memo((props: AppFilterProps) => {
     );
     return <Filter label='REPOSITORIES' selected={props.pref.reposFilter} setSelected={s => props.onChange({...props.pref, reposFilter: s})} field={true} options={repoOptions} />;
 });
-
-export const FavoriteFilter = (props: {value: boolean; onChange: (showFavorites: boolean) => void}) => {
-    const onChange = (val: boolean) => {
-        props.onChange(val);
-    };
-    return (
-        <div
-            className={`filter filter__item ${props.value ? 'filter__item--selected' : ''}`}
-            style={{margin: '0.5em 0', marginTop: '0.5em'}}
-            onClick={() => onChange(!props.value)}>
-            <Checkbox
-                value={!!props.value}
-                onChange={onChange}
-                style={{
-                    marginRight: '8px'
-                }}
-            />
-            <div style={{marginRight: '5px', textAlign: 'center', width: '25px'}}>
-                <i style={{color: '#FFCE25'}} className='fas fa-star' />
-            </div>
-            <div className='filter__item__label'>Favorites Only</div>
-        </div>
-    );
-};
 
 function getAutoSyncOptions(apps: FilteredApp[]) {
     const counts = getCounts(apps, 'autosync', app => getAutoSyncStatus(app.spec.syncPolicy), ['Enabled', 'Disabled']);

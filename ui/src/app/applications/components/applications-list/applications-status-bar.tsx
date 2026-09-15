@@ -1,7 +1,6 @@
 import * as React from 'react';
 import {COLORS, StatusBar, StatusBarReading} from '../../../shared/components';
 import * as models from '../../../shared/models';
-import {getAppSetHealthStatus} from '../utils';
 
 function getAppReadings(applications: models.Application[]): StatusBarReading[] {
     return [
@@ -38,31 +37,6 @@ function getAppReadings(applications: models.Application[]): StatusBarReading[] 
     ];
 }
 
-function getAppSetReadings(appSets: models.ApplicationSet[]): StatusBarReading[] {
-    return [
-        {
-            name: 'Healthy',
-            value: appSets.filter(appSet => getAppSetHealthStatus(appSet) === 'Healthy').length,
-            color: COLORS.health.healthy
-        },
-        {
-            name: 'Progressing',
-            value: appSets.filter(appSet => getAppSetHealthStatus(appSet) === 'Progressing').length,
-            color: COLORS.health.progressing
-        },
-        {
-            name: 'Degraded',
-            value: appSets.filter(appSet => getAppSetHealthStatus(appSet) === 'Degraded').length,
-            color: COLORS.health.degraded
-        },
-        {
-            name: 'Unknown',
-            value: appSets.filter(appSet => getAppSetHealthStatus(appSet) === 'Unknown').length,
-            color: COLORS.health.unknown
-        }
-    ];
-}
-
 export interface AppsStatusBarProps {
     applications: models.Application[];
 }
@@ -74,18 +48,7 @@ export const AppsStatusBar = ({applications}: AppsStatusBarProps) => {
     return <StatusBar readings={getAppReadings(applications)} />;
 };
 
-export interface AppSetsStatusBarProps {
-    appSets: models.ApplicationSet[];
-}
-
-export const AppSetsStatusBar = ({appSets}: AppSetsStatusBarProps) => {
-    if (!appSets || appSets.length === 0) {
-        return null;
-    }
-    return <StatusBar readings={getAppSetReadings(appSets)} />;
-};
-
-// Legacy wrapper for backwards compatibility (callers should migrate to AppsStatusBar or AppSetsStatusBar)
+// Legacy wrapper for backwards compatibility (callers should migrate to AppsStatusBar)
 export interface ApplicationsStatusBarProps {
     applications: models.Application[];
 }

@@ -2,7 +2,9 @@ import {Tooltip} from 'argo-ui';
 import * as React from 'react';
 import {ContextApis, AuthSettingsCtx} from '../../../shared/context';
 import * as models from '../../../shared/models';
-import * as AppUtils from '../../../applications/components/utils';
+import {appInstanceName, appQualifiedName, HealthStatusIcon} from '../../../shared/components/app-utils';
+import {formatCreationTimestamp, getAppListLink} from '../../../shared/components/resource-helpers';
+import {isFavorite, toggleFavorite} from '../../../shared/components/filters';
 import {getAppSetHealthStatus} from '../../../shared/applications/utils';
 import {services} from '../../../shared/services';
 import {ViewPreferences} from '../../../shared/services';
@@ -18,16 +20,16 @@ export interface AppSetTileProps {
 export const AppSetTile = ({appSet, selected, pref, ctx, tileRef}: AppSetTileProps) => {
     const useAuthSettingsCtx = React.useContext(AuthSettingsCtx);
     const favList = pref.appList.favoritesAppList || [];
-    const isFav = AppUtils.isFavorite(favList, appSet);
+    const isFav = isFavorite(favList, appSet);
 
     const healthStatus = getAppSetHealthStatus(appSet);
 
     // AppSet pages don't support the Application details `view` param, so the link is view-less.
-    const appSetLink = AppUtils.getAppListLink(ctx, appSet);
+    const appSetLink = getAppListLink(ctx, appSet);
 
     const handleFavoriteToggle = (e: React.MouseEvent) => {
         e.stopPropagation();
-        services.viewPreferences.updatePreferences({appList: {...pref.appList, favoritesAppList: AppUtils.toggleFavorite(favList, appSet)}});
+        services.viewPreferences.updatePreferences({appList: {...pref.appList, favoritesAppList: toggleFavorite(favList, appSet)}});
     };
 
     return (
@@ -39,14 +41,14 @@ export const AppSetTile = ({appSet, selected, pref, ctx, tileRef}: AppSetTilePro
                 href={appSetLink.href}
                 onClick={appSetLink.onClick}
                 draggable={false}
-                aria-label={AppUtils.appQualifiedName(appSet, useAuthSettingsCtx?.appsInAnyNamespaceEnabled)}>
-                <div className={`columns small-12 applications-list__info qe-applications-list-${AppUtils.appInstanceName(appSet)} applications-tiles__item`}>
+                aria-label={appQualifiedName(appSet, useAuthSettingsCtx?.appsInAnyNamespaceEnabled)}>
+                <div className={`columns small-12 applications-list__info qe-applications-list-${appInstanceName(appSet)} applications-tiles__item`}>
                     {/* Header row with icon, title, and action buttons */}
                     <div className='row'>
                         <div className='columns small-11 applications-tiles__title-col'>
                             <i className='icon argo-icon-applicationset' />
-                            <Tooltip content={AppUtils.appInstanceName(appSet)}>
-                                <span className='applications-list__title'>{AppUtils.appQualifiedName(appSet, useAuthSettingsCtx?.appsInAnyNamespaceEnabled)}</span>
+                            <Tooltip content={appInstanceName(appSet)}>
+                                <span className='applications-list__title'>{appQualifiedName(appSet, useAuthSettingsCtx?.appsInAnyNamespaceEnabled)}</span>
                             </Tooltip>
                         </div>
                         {/* Empty placeholder — the actual buttons live outside the anchor as an
@@ -89,7 +91,7 @@ export const AppSetTile = ({appSet, selected, pref, ctx, tileRef}: AppSetTilePro
                                 Status:
                             </div>
                             <div className='columns applications-tiles__field-value' qe-id='applications-tiles-health-status'>
-                                <AppUtils.HealthStatusIcon state={{status: healthStatus, message: ''}} /> {healthStatus}
+                                <HealthStatusIcon state={{status: healthStatus, message: ''}} /> {healthStatus}
                             </div>
                         </div>
 
@@ -106,7 +108,7 @@ export const AppSetTile = ({appSet, selected, pref, ctx, tileRef}: AppSetTilePro
                             <div className='columns applications-tiles__field-label' title='Age:'>
                                 Created At:
                             </div>
-                            <div className='columns applications-tiles__field-value'>{AppUtils.formatCreationTimestamp(appSet.metadata.creationTimestamp)}</div>
+                            <div className='columns applications-tiles__field-value'>{formatCreationTimestamp(appSet.metadata.creationTimestamp)}</div>
                         </div>
                     </div>
                 </div>

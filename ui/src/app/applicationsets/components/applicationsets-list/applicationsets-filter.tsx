@@ -3,9 +3,7 @@ import * as React from 'react';
 import {ApplicationSet, HealthStatusCode} from '../../../shared/models';
 import {AppSetsListPreferences} from '../../../shared/services';
 import {Filter, FiltersGroup} from '../../../shared/components/filter/filter';
-import {createMetadataSelector} from '../../../applications/components/selectors';
-import {FavoriteFilter, LabelsFilter} from '../../../applications/components/applications-list/applications-filter';
-import {isFavorite} from '../../../applications/components/utils';
+import {createMetadataSelector, FavoriteFilter, LabelsFilter, isFavorite} from '../../../shared/components/filters';
 import {HealthStatusIcon} from '../../../shared/components/app-utils';
 import {getAppSetHealthStatus} from '../../../shared/applications/utils';
 

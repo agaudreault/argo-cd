@@ -3,7 +3,9 @@ import * as React from 'react';
 import Moment from 'react-moment';
 import {AuthSettingsCtx, ContextApis} from '../../../shared/context';
 import * as models from '../../../shared/models';
-import * as AppUtils from '../../../applications/components/utils';
+import {appQualifiedName, HealthStatusIcon} from '../../../shared/components/app-utils';
+import {getAppListLink} from '../../../shared/components/resource-helpers';
+import {isFavorite, toggleFavorite} from '../../../shared/components/filters';
 import {getAppSetHealthStatus} from '../../../shared/applications/utils';
 import {services} from '../../../shared/services';
 import {ViewPreferences} from '../../../shared/services';
@@ -19,15 +21,15 @@ export interface AppSetTableRowProps {
 export const AppSetTableRow = ({appSet, selected, pref, ctx}: AppSetTableRowProps) => {
     const useAuthSettingsCtx = React.useContext(AuthSettingsCtx);
     const favList = pref.appList.favoritesAppList || [];
-    const isFav = AppUtils.isFavorite(favList, appSet);
+    const isFav = isFavorite(favList, appSet);
     const healthStatus = getAppSetHealthStatus(appSet);
 
     // AppSet pages don't support the Application details `view` param, so the link is view-less.
-    const appSetLink = AppUtils.getAppListLink(ctx, appSet);
+    const appSetLink = getAppListLink(ctx, appSet);
 
     const handleFavoriteToggle = (e: React.MouseEvent) => {
         e.stopPropagation();
-        services.viewPreferences.updatePreferences({appList: {...pref.appList, favoritesAppList: AppUtils.toggleFavorite(favList, appSet)}});
+        services.viewPreferences.updatePreferences({appList: {...pref.appList, favoritesAppList: toggleFavorite(favList, appSet)}});
     };
 
     return (
@@ -41,7 +43,7 @@ export const AppSetTableRow = ({appSet, selected, pref, ctx}: AppSetTableRowProp
                     className='applications-list__table-row__overlay-link'
                     href={appSetLink.href}
                     onClick={appSetLink.onClick}
-                    aria-label={AppUtils.appQualifiedName(appSet, useAuthSettingsCtx?.appsInAnyNamespaceEnabled)}
+                    aria-label={appQualifiedName(appSet, useAuthSettingsCtx?.appsInAnyNamespaceEnabled)}
                 />
                 {/* First column: Favorite, Kind, Name */}
                 <div className='columns small-4'>
@@ -92,7 +94,7 @@ export const AppSetTableRow = ({appSet, selected, pref, ctx}: AppSetTableRowProp
                     above the overlay) navigates on click instead of being a dead zone. */}
                 <div className='columns small-8'>
                     <CellLink href={appSetLink.href} onClick={appSetLink.onClick}>
-                        <AppUtils.HealthStatusIcon state={{status: healthStatus, message: ''}} /> <span>{healthStatus}</span>
+                        <HealthStatusIcon state={{status: healthStatus, message: ''}} /> <span>{healthStatus}</span>
                     </CellLink>
                 </div>
             </div>

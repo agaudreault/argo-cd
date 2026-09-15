@@ -12,10 +12,11 @@ import {AppsListPreferences, AppsListViewKey, AppsListViewType, AppSetsListPrefe
 import {useSidebarTarget} from '../../../sidebar/sidebar';
 import {useObservableQuery} from '../../../shared/hooks/query';
 import {isInvalidRegex} from '../../../shared/utils';
-import * as AppUtils from '../../../applications/components/utils';
+import {appInstanceName, appQualifiedName} from '../../../shared/components/app-utils';
+import {getAppUrl, handlePageVisibility} from '../../../shared/components/resource-helpers';
 import {AppSetsFilter, ApplicationSetFilteredApp, getAppSetFilterResults} from './applicationsets-filter';
 import {createMatcher} from '../../../shared/components/list-search';
-import {AppSetsStatusBar} from '../../../applications/components/applications-list/applications-status-bar';
+import {AppSetsStatusBar} from './appset-status-bar';
 import {AppSetTile} from './appset-tile';
 import {AppSetTableRow} from './appset-table-row';
 import {FlexTopBar} from '../../../shared/components';
@@ -66,7 +67,7 @@ function loadApplicationSets(projects: string[]): Observable<models.ApplicationS
                         map(appChanges => {
                             appChanges.forEach(appChange => {
                                 const appSet = appChange.application as unknown as models.ApplicationSet;
-                                const index = appSets.findIndex(item => AppUtils.appInstanceName(item) === AppUtils.appInstanceName(appSet));
+                                const index = appSets.findIndex(item => appInstanceName(item) === appInstanceName(appSet));
                                 switch (appChange.type) {
                                     case 'DELETED':
                                         if (index > -1) {
@@ -160,15 +161,15 @@ const ApplicationSetsSearchBar = (props: {content: string; searchRegex: boolean;
             placeholder={searchRegex ? 'Regex search (e.g. ^foo-.*-prod$)' : 'Search application sets...'}
             regexEnabled={searchRegex}
             autocomplete={{
-                items: appSets.map(appSet => AppUtils.appQualifiedName(appSet, useAuthSettingsCtx?.appsInAnyNamespaceEnabled)),
+                items: appSets.map(appSet => appQualifiedName(appSet, useAuthSettingsCtx?.appsInAnyNamespaceEnabled)),
                 filterSuggestions: true,
                 onSelect: val => {
                     const selectedAppSet = appSets?.find(appSet => {
-                        const qualifiedName = AppUtils.appQualifiedName(appSet, useAuthSettingsCtx?.appsInAnyNamespaceEnabled);
+                        const qualifiedName = appQualifiedName(appSet, useAuthSettingsCtx?.appsInAnyNamespaceEnabled);
                         return qualifiedName === val;
                     });
                     if (selectedAppSet) {
-                        ctx.navigation.goto(`/${AppUtils.getAppUrl(selectedAppSet)}`);
+                        ctx.navigation.goto(`/${getAppUrl(selectedAppSet)}`);
                     }
                 },
                 renderItem: item => (
@@ -248,7 +249,7 @@ const ApplicationSetTiles = ({appSets}: {appSets: models.ApplicationSet[]}) => {
         keys: Key.ENTER,
         action: () => {
             if (selectedAppSet > -1) {
-                ctxh.navigation.goto(`/${AppUtils.getAppUrl(appSets[selectedAppSet])}`);
+                ctxh.navigation.goto(`/${getAppUrl(appSets[selectedAppSet])}`);
                 return true;
             }
             return false;
@@ -287,7 +288,7 @@ const ApplicationSetTiles = ({appSets}: {appSets: models.ApplicationSet[]}) => {
                         <div className='applications-tiles argo-table-list argo-table-list--clickable' ref={appSetContainerRef}>
                             {appSets.map((appSet, i) => (
                                 <AppSetTile
-                                    key={AppUtils.appInstanceName(appSet)}
+                                    key={appInstanceName(appSet)}
                                     appSet={appSet}
                                     selected={selectedAppSet === i}
                                     pref={pref}
@@ -321,7 +322,7 @@ const ApplicationSetTable = ({appSets}: {appSets: models.ApplicationSet[]}) => {
         keys: Key.ENTER,
         action: () => {
             if (selectedAppSet > -1) {
-                ctxh.navigation.goto(`/${AppUtils.getAppUrl(appSets[selectedAppSet])}`);
+                ctxh.navigation.goto(`/${getAppUrl(appSets[selectedAppSet])}`);
                 return true;
             }
             return false;
@@ -335,7 +336,7 @@ const ApplicationSetTable = ({appSets}: {appSets: models.ApplicationSet[]}) => {
                     {(pref: ViewPreferences) => (
                         <div className='applications-table argo-table-list argo-table-list--clickable'>
                             {appSets.map((appSet, i) => (
-                                <AppSetTableRow key={AppUtils.appInstanceName(appSet)} appSet={appSet} selected={selectedAppSet === i} pref={pref} ctx={ctx} />
+                                <AppSetTableRow key={appInstanceName(appSet)} appSet={appSet} selected={selectedAppSet === i} pref={pref} ctx={ctx} />
                             ))}
                         </div>
                     )}
@@ -383,7 +384,7 @@ export const ApplicationSetsList = (props: RouteComponentProps<any>) => {
                             <Page key={pref.view} title={getPageTitle(pref.view)} useTitleOnly={true} toolbar={{breadcrumbs: [{title: 'ApplicationSets', path: props.match.url}]}}>
                                 <DataLoader
                                     input={pref.projectsFilter?.join(',')}
-                                    load={() => AppUtils.handlePageVisibility(() => loadApplicationSets(pref.projectsFilter))}
+                                    load={() => handlePageVisibility(() => loadApplicationSets(pref.projectsFilter))}
                                     loadingRenderer={() => (
                                         <div className='argo-container'>
                                             <MockupList height={100} marginTop={30} />
