@@ -1,0 +1,48 @@
+@import 'node_modules/argo-ui/src/styles/config';
+@import 'node_modules/foundation-sites/scss/util/util';
+@import 'node_modules/argo-ui/src/styles/theme';
+@import '../../../shared/config.scss';
+
+// DropDown portals menu content to document.body, so these rules cannot live under .applicationset-details.
+.argo-dropdown__content.is-menu {
+    margin-left: -16px;
+
+    ul li.appset-details-app-dropdown__filter {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 5px 10px;
+        border-bottom: none;
+
+        .appset-details-app-dropdown__filter-spacer {
+            width: 14px;
+            flex-shrink: 0;
+        }
+
+        .argo-field {
+            flex: 1;
+            min-width: 0;
+            margin: 0;
+        }
+    }
+
+    ul li.appset-details-app-dropdown__item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 5px 10px;
+        font-size: 14px;
+        line-height: normal;
+        color: $argo-color-gray-6;
+        border-bottom: none;
+
+        .appset-details-app-dropdown__resource-icon.icon {
+            font-size: 14px;
+            line-height: 14px;
+            width: 14px;
+            height: 14px;
+            vertical-align: middle;
+            flex-shrink: 0;
+        }
+    }
+}

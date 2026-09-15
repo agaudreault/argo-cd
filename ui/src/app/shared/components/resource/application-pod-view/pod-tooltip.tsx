@@ -1,7 +1,7 @@
 import * as React from 'react';
 import Moment from 'react-moment';
-import {Pod, ResourceName} from '../../../shared/models';
-import {isYoungerThanXMinutes, formatResourceInfo} from '../utils';
+import {Pod, ResourceName} from '../../../models';
+import {isYoungerThanXMinutes, formatResourceInfo} from '../../resource-helpers';
 
 export const PodTooltip = (props: {pod: Pod}) => {
     const pod = props.pod;

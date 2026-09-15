@@ -1,7 +1,7 @@
 import * as ReactDOM from 'react-dom';
 import * as React from 'react';
 
-import {Filters, FiltersProps} from '../../../applications/components/application-details/application-resource-filter';
+import {Filters, FiltersProps} from '../../components/resource/application-resource-filter';
 import {useSidebarTarget} from '../../../sidebar/sidebar';
 
 // ApplicationDetailsFilters renders the shared resource filter panel into the

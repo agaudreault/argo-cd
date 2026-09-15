@@ -17,7 +17,7 @@ import {ResourcesSummary} from './resources-summary';
 import {FilteredResource, getFilterResults, ResourcesFilter} from './resources-filter';
 import classNames from 'classnames';
 import {isInvalidRegex} from '../../../shared/utils';
-import {createMatcher} from './resources-list-search';
+import {createMatcher} from '../../../shared/components/list-search';
 import {ResourcesTable} from './resources-table';
 import {RESOURCE_SORT_OPTIONS, RESOURCES_LIST_SORT_KEY} from './resources-sort';
 import {ResourcesStatusBar} from './resources-status-bar';

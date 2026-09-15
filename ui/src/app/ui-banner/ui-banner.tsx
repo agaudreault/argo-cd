@@ -2,7 +2,7 @@ import {Tooltip} from 'argo-ui';
 import * as React from 'react';
 import {combineLatest} from 'rxjs';
 import {map} from 'rxjs/operators';
-import {ExternalLink} from '../applications/components/application-urls';
+import {ExternalLink} from '../shared/components/resource/application-urls';
 
 import {DataLoader} from '../shared/components';
 import {services, ViewPreferences} from '../shared/services';

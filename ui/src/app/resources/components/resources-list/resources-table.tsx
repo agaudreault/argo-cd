@@ -7,8 +7,8 @@ import {ActionMenu, CellLink, Cluster, DataLoader} from '../../../shared/compone
 import {Consumer, Context, ContextApis} from '../../../shared/context';
 import * as models from '../../../shared/models';
 import {services} from '../../../shared/services';
-import {ResourceIcon} from '../../../applications/components/resource-icon';
-import {ResourceLabel} from '../../../applications/components/resource-label';
+import {ResourceIcon} from '../../../shared/components/resource/resource-icon';
+import {ResourceLabel} from '../../../shared/components/resource/resource-label';
 import * as AppUtils from '../../../applications/components/utils';
 import {
     getResourceAppLink,

@@ -1,6 +1,6 @@
 import {DropDownMenu} from 'argo-ui';
 import * as React from 'react';
-import {isValidURL} from '../../shared/utils';
+import {isValidURL} from '../../../shared/utils';
 
 export class InvalidExternalLinkError extends Error {
     constructor(message: string) {

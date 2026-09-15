@@ -3,9 +3,10 @@ import * as React from 'react';
 
 import {Context} from '../../../shared/context';
 import {services} from '../../../shared/services';
-import {getAppUrl} from '../utils';
+import {getAppUrl} from '../../../shared/components/resource-helpers';
+import './applicationset-details-app-dropdown.scss';
 
-export const ApplicationsDetailsAppDropdown = (props: {appName: string}) => {
+export const ApplicationSetsDetailsAppDropdown = (props: {appName: string}) => {
     const [opened, setOpened] = React.useState(false);
     const [appFilter, setAppFilter] = React.useState('');
     const ctx = React.useContext(Context);
@@ -20,8 +21,8 @@ export const ApplicationsDetailsAppDropdown = (props: {appName: string}) => {
             )}>
             {opened && (
                 <ul>
-                    <li className='application-details-app-dropdown__filter'>
-                        <span className='application-details-app-dropdown__filter-spacer' aria-hidden='true' />
+                    <li className='appset-details-app-dropdown__filter'>
+                        <span className='appset-details-app-dropdown__filter-spacer' aria-hidden='true' />
                         <input
                             className='argo-field'
                             value={appFilter}
@@ -37,7 +38,7 @@ export const ApplicationsDetailsAppDropdown = (props: {appName: string}) => {
                             }}
                         />
                     </li>
-                    <DataLoader load={() => services.applications.list([], 'application', {fields: ['items.metadata.name', 'items.metadata.namespace']})}>
+                    <DataLoader load={() => services.applications.list([], 'applicationset', {fields: ['items.metadata.name', 'items.metadata.namespace']})}>
                         {apps =>
                             apps.items
                                 .filter(app => {
@@ -45,8 +46,8 @@ export const ApplicationsDetailsAppDropdown = (props: {appName: string}) => {
                                 })
                                 .slice(0, 100) // take top 100 results after filtering to avoid performance issues
                                 .map(app => (
-                                    <li className='application-details-app-dropdown__item' key={app.metadata.name} onClick={() => ctx.navigation.goto(`/${getAppUrl(app)}`)}>
-                                        <i className='icon argo-icon-application resource-icon__font-icon application-details-app-dropdown__resource-icon' />
+                                    <li className='appset-details-app-dropdown__item' key={app.metadata.name} onClick={() => ctx.navigation.goto(`/${getAppUrl(app)}`)}>
+                                        <i className='icon argo-icon-applicationset resource-icon__font-icon appset-details-app-dropdown__resource-icon' />
                                         <span>
                                             {app.metadata.name}
                                             {app.metadata.name === props.appName && ' (current)'}

@@ -2,8 +2,8 @@ import {DropDown, Tooltip} from 'argo-ui';
 import * as React from 'react';
 import classNames from 'classnames';
 import * as models from '../../../shared/models';
-import {ResourceIcon} from '../resource-icon';
-import {ResourceLabel} from '../resource-label';
+import {ResourceIcon} from './resource-icon';
+import {ResourceLabel} from './resource-label';
 import {ActionMenuButton, EditablePanel} from '../../../shared/components';
 import {
     ComparisonStatusIcon,
@@ -12,10 +12,9 @@ import {
     isSameNode,
     resourceStatusToResourceNode,
     getApplicationLinkURLFromNode,
-    getManagedByURLFromNode,
-    MANAGED_BY_URL_INVALID_TEXT,
-    MANAGED_BY_URL_INVALID_COLOR
-} from '../utils';
+    getManagedByURLFromNode
+} from '../resource-helpers';
+import {MANAGED_BY_URL_INVALID_TEXT, MANAGED_BY_URL_INVALID_COLOR} from '../../../shared/utils';
 import {AppDetailsPreferences} from '../../../shared/services';
 import {Consumer} from '../../../shared/context';
 import Moment from 'react-moment';

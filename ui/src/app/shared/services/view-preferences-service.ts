@@ -1,7 +1,7 @@
 import * as deepMerge from 'deepmerge';
 import {BehaviorSubject, Observable} from 'rxjs';
 
-import {PodGroupType} from '../../applications/components/application-pod-view/pod-view';
+import {PodGroupType} from '../components/resource/application-pod-view/pod-view';
 import {UserMessages} from '../models';
 
 export type AppsDetailsViewType = 'tree' | 'network' | 'list' | 'pods';

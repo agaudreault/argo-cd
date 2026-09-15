@@ -10,19 +10,19 @@ import {AppContext, AuthSettingsCtx, Context} from '../../../shared/context';
 import * as appModels from '../../../shared/models';
 import {AppDetailsPreferences, AppsDetailsViewKey, AppsDetailsViewType, services} from '../../../shared/services';
 
-import {ApplicationResourceTree, type ResourceTreeNode} from '../../../applications/components/application-resource-tree/application-resource-tree';
-import {ApplicationResourceList, ApplicationResourceParentRef} from '../../../applications/components/application-details/application-resource-list';
-import {ApplicationsDetailsAppDropdown} from '../../../applications/components/application-details/application-details-app-dropdown';
-import {getEffectiveResourceFilter} from '../../../applications/components/application-details/application-resource-filter';
+import {ApplicationResourceTree, type ResourceTreeNode} from '../../../shared/components/resource/application-resource-tree/application-resource-tree';
+import {ApplicationResourceList, ApplicationResourceParentRef} from '../../../shared/components/resource/application-resource-list';
+import {ApplicationSetsDetailsAppDropdown} from './applicationset-details-app-dropdown';
+import {getEffectiveResourceFilter} from '../../../shared/components/resource/application-resource-filter';
 import {
     APPLICATION_DETAILS_SORT_KEY,
     ApplicationResourceSortKey,
     compareApplicationResource,
     GROUPED_NODES_DETAILS_SORT_KEY
-} from '../../../applications/components/application-details/application-resource-sort';
-import {ResourceDetails} from '../../../applications/components/resource-details/resource-details';
-import * as AppUtils from '../../../applications/components/utils';
-import {getApplicationDetailsContainerClass} from '../../../applications/components/utils';
+} from '../../../shared/components/resource/application-resource-sort';
+import {AppSetGeneratedAppDetails} from '../resource-details/appset-generated-app-details';
+import * as AppUtils from '../../../shared/components/resource-helpers';
+import {getApplicationDetailsContainerClass} from '../../../shared/components/resource-helpers';
 import {useListSort} from '../../../shared/hooks/use-list-sort';
 import {ApplicationDetailsFilters, filterTreeNode, getTreeFilter, loadApplicationInfo, NodeInfo, ResourceTreeToolbar, SelectNode} from '../../../shared/applications/details';
 
@@ -101,18 +101,6 @@ export const ApplicationSetDetails: FC<RouteComponentProps<{appnamespace: string
     const loadAppInfo = useCallback(
         (name: string, appNamespace: string) => loadApplicationInfo(name, appNamespace, OBJECT_LIST_KIND, appChanged, onAppDeleted),
         [onAppDeleted, appChanged]
-    );
-
-    const updateApp = useCallback(
-        async (app: appModels.Application, query: {validate?: boolean}) => {
-            const latestApp = await services.applications.get(app.metadata.name, app.metadata.namespace, OBJECT_LIST_KIND);
-            latestApp.metadata.labels = app.metadata.labels;
-            latestApp.metadata.annotations = app.metadata.annotations;
-            latestApp.spec = app.spec;
-            const updatedApp = await services.applications.update(latestApp, query);
-            appChanged.next(updatedApp);
-        },
-        [appChanged]
     );
 
     const getPageTitle = (view: string) => {
@@ -268,7 +256,7 @@ export const ApplicationSetDetails: FC<RouteComponentProps<{appnamespace: string
                                     toolbar={{
                                         breadcrumbs: [
                                             {title: 'ApplicationSets', path: '/applicationsets'},
-                                            {title: <ApplicationsDetailsAppDropdown appName={props.match.params.name} objectListKind={OBJECT_LIST_KIND} />}
+                                            {title: <ApplicationSetsDetailsAppDropdown appName={props.match.params.name} />}
                                         ],
                                         actionMenu: {
                                             items: [
@@ -416,15 +404,11 @@ export const ApplicationSetDetails: FC<RouteComponentProps<{appnamespace: string
                                     <SlidingPanel isShown={selectedNode != null || isAppSelected} onClose={() => selectNode('')}>
                                         {isAppSelected && <AppSetResourceDetails appSet={application} />}
                                         {!isAppSelected && selectedNode && (
-                                            <ResourceDetails
-                                                tree={tree}
+                                            <AppSetGeneratedAppDetails
                                                 application={application as unknown as appModels.Application}
-                                                isAppSelected={isAppSelected}
-                                                updateApp={(app: appModels.Application, query: {validate?: boolean}) => updateApp(app, query)}
                                                 selectedNode={selectedNode}
                                                 appCxt={{...appContext, apis: appContext} as unknown as AppContext}
                                                 appChanged={appChanged}
-                                                readOnlyGeneratedApplication={true}
                                             />
                                         )}
                                     </SlidingPanel>

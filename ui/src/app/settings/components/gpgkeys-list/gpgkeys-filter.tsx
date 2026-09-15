@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as models from '../../../shared/models';
-import {Filter, FiltersGroup} from '../../../applications/components/filter/filter';
+import {Filter, FiltersGroup} from '../../../shared/components/filter/filter';
 import {getFilterCounts} from '../list-filter-utils';
 
 export interface GpgKeysListPreferences {

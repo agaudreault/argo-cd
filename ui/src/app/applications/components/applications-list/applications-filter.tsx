@@ -4,7 +4,6 @@ import * as React from 'react';
 import {
     Application,
     ApplicationDestination,
-    ApplicationSet,
     Cluster,
     HealthStatusCode,
     HealthStatuses,
@@ -14,10 +13,10 @@ import {
     SyncStatusCode,
     SyncStatuses
 } from '../../../shared/models';
-import {AppsListPreferences, AppSetsListPreferences, services} from '../../../shared/services';
-import {Filter, FiltersGroup} from '../filter/filter';
+import {AppsListPreferences, services} from '../../../shared/services';
+import {Filter, FiltersGroup} from '../../../shared/components/filter/filter';
 import {createMetadataSelector} from '../selectors';
-import {ComparisonStatusIcon, getAppAllSources, getAppSetHealthStatus, HealthStatusIcon, getOperationStateTitle, isFavorite} from '../utils';
+import {ComparisonStatusIcon, getAppAllSources, HealthStatusIcon, getOperationStateTitle, isFavorite} from '../utils';
 import {formatClusterQueryParam} from '../../../shared/utils';
 import {COLORS} from '../../../shared/components/colors';
 
@@ -35,19 +34,9 @@ export interface FilterResult {
     labels: boolean;
 }
 
-export interface ApplicationSetFilterResult {
-    health: boolean;
-    favourite: boolean;
-    labels: boolean;
-}
-
 export interface FilteredApp extends Application {
     isAppOfAppsPattern?: boolean;
     filterResult: FilterResult;
-}
-
-export interface ApplicationSetFilteredApp extends ApplicationSet {
-    filterResult: ApplicationSetFilterResult;
 }
 
 export function getAutoSyncStatus(syncPolicy?: SyncPolicy) {
@@ -111,19 +100,6 @@ export function getAppFilterResults(applications: Application[], pref: AppsListP
     });
 }
 
-export function getAppSetFilterResults(appSets: ApplicationSet[], pref: AppSetsListPreferences): ApplicationSetFilteredApp[] {
-    const labelSelector = createMetadataSelector(pref.labelsFilter || []);
-
-    return appSets.map(appSet => ({
-        ...appSet,
-        filterResult: {
-            health: pref.healthFilter.length === 0 || pref.healthFilter.includes(getAppSetHealthStatus(appSet)),
-            favourite: !pref.showFavorites || isFavorite(pref.favoritesAppList, appSet),
-            labels: pref.labelsFilter.length === 0 || labelSelector(appSet.metadata.labels)
-        }
-    }));
-}
-
 const optionsFrom = (options: string[], filter: string[]) => {
     return options
         .filter(s => filter.indexOf(s) === -1)
@@ -141,15 +117,6 @@ export interface AppFilterProps {
     collapsed?: boolean;
 }
 
-// Props for ApplicationSet filters
-export interface AppSetFilterProps {
-    apps: ApplicationSetFilteredApp[];
-    pref: AppSetsListPreferences;
-    onChange: (newPrefs: AppSetsListPreferences) => void;
-    children?: React.ReactNode;
-    collapsed?: boolean;
-}
-
 const getCounts = (apps: FilteredApp[], filterType: keyof FilterResult, filter: (app: Application) => string, init?: string[]) => {
     const map = new Map<string, number>();
     if (init) {
@@ -162,37 +129,8 @@ const getCounts = (apps: FilteredApp[], filterType: keyof FilterResult, filter: 
     return map;
 };
 
-const getAppSetCounts = (apps: ApplicationSetFilteredApp[], filterType: keyof ApplicationSetFilterResult, filter: (app: ApplicationSet) => string, init?: string[]) => {
-    const map = new Map<string, number>();
-    if (init) {
-        init.forEach(key => map.set(key, 0));
-    }
-    // filter out all apps that does not match other filters and ignore this filter result
-    apps.filter(app => filter(app) && Object.keys(app.filterResult).every((key: keyof ApplicationSetFilterResult) => key === filterType || app.filterResult[key])).forEach(app =>
-        map.set(filter(app), (map.get(filter(app)) || 0) + 1)
-    );
-    return map;
-};
-
 const getOptions = (apps: FilteredApp[], filterType: keyof FilterResult, filter: (app: Application) => string, keys: string[], getIcon?: (k: string) => React.ReactNode) => {
     const counts = getCounts(apps, filterType, filter, keys);
-    return keys.map(k => {
-        return {
-            label: k,
-            icon: getIcon && getIcon(k),
-            count: counts.get(k)
-        };
-    });
-};
-
-const getAppSetOptions = (
-    apps: ApplicationSetFilteredApp[],
-    filterType: keyof ApplicationSetFilterResult,
-    filter: (app: ApplicationSet) => string,
-    keys: string[],
-    getIcon?: (k: string) => React.ReactNode
-) => {
-    const counts = getAppSetCounts(apps, filterType, filter, keys);
     return keys.map(k => {
         return {
             label: k,
@@ -236,24 +174,7 @@ const AppHealthFilter = (props: AppFilterProps) => (
     />
 );
 
-const AppSetHealthFilter = (props: AppSetFilterProps) => (
-    <Filter
-        label='HEALTH STATUS'
-        selected={props.pref.healthFilter}
-        setSelected={s => props.onChange({...props.pref, healthFilter: s})}
-        options={getAppSetOptions(
-            props.apps,
-            'health',
-            app => getAppSetHealthStatus(app),
-            ['Healthy', 'Progressing', 'Degraded', 'Unknown'],
-            s => (
-                <HealthStatusIcon state={{status: s as HealthStatusCode, message: ''}} noSpin={true} />
-            )
-        )}
-    />
-);
-
-const LabelsFilter = React.memo(
+export const LabelsFilter = React.memo(
     (props: {apps: Array<{metadata: {labels?: {[key: string]: string}}}>; pref: {labelsFilter: string[]}; onChange: (labelsFilter: string[]) => void}) => {
         const labelOptions = React.useMemo(() => {
             const labels = new Map<string, Set<string>>();
@@ -418,7 +339,7 @@ const RepoFilter = React.memo((props: AppFilterProps) => {
     return <Filter label='REPOSITORIES' selected={props.pref.reposFilter} setSelected={s => props.onChange({...props.pref, reposFilter: s})} field={true} options={repoOptions} />;
 });
 
-const FavoriteFilter = (props: {value: boolean; onChange: (showFavorites: boolean) => void}) => {
+export const FavoriteFilter = (props: {value: boolean; onChange: (showFavorites: boolean) => void}) => {
     const onChange = (val: boolean) => {
         props.onChange(val);
     };
@@ -555,24 +476,6 @@ export const ApplicationsFilter = (props: AppFilterProps) => {
             <RepoFilter {...props} />
             <TargetRevisionFilter {...props} />
             <AutoSyncFilter {...props} collapsed={true} />
-        </FiltersGroup>
-    );
-};
-
-export const AppSetsFilter = (props: AppSetFilterProps) => {
-    const appliedFilter = [...(props.pref.healthFilter || []), ...(props.pref.labelsFilter || []), ...(props.pref.showFavorites ? ['favorites'] : [])];
-
-    const onClearFilter = () => {
-        const newPref: AppSetsListPreferences = {...props.pref};
-        AppSetsListPreferences.clearFilters(newPref);
-        props.onChange(newPref);
-    };
-
-    return (
-        <FiltersGroup title='ApplicationSet filters' content={props.children} appliedFilter={appliedFilter} onClearFilter={onClearFilter} collapsed={props.collapsed}>
-            <FavoriteFilter value={!!props.pref.showFavorites} onChange={val => props.onChange({...props.pref, showFavorites: val})} />
-            <AppSetHealthFilter {...props} />
-            <LabelsFilter apps={props.apps} pref={props.pref} onChange={labelsFilter => props.onChange({...props.pref, labelsFilter})} />
         </FiltersGroup>
     );
 };

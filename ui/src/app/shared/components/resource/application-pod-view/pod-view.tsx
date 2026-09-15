@@ -3,16 +3,16 @@ import * as React from 'react';
 import {ReactNode, useContext} from 'react';
 import Moment from 'react-moment';
 
-import {Context, ContextApis} from '../../../shared/context';
+import {Context, ContextApis} from '../../../context';
 import {History} from 'history';
-import {EmptyState} from '../../../shared/components';
-import {Application, ApplicationTree, HostResourceInfo, InfoItem, Node, Pod, ResourceName, ResourceNode, ResourceStatus} from '../../../shared/models';
-import {PodViewPreferences, services, ViewPreferences} from '../../../shared/services';
+import {EmptyState} from '../../../components';
+import {Application, ApplicationTree, HostResourceInfo, InfoItem, Node, Pod, ResourceName, ResourceNode, ResourceStatus} from '../../../models';
+import {PodViewPreferences, services, ViewPreferences} from '../../../services';
 
 import {ResourceTreeNode} from '../application-resource-tree/application-resource-tree';
-import {ResourceIcon} from '../resource-icon';
-import {ResourceLabel} from '../resource-label';
-import {ComparisonStatusIcon, isYoungerThanXMinutes, HealthStatusIcon, nodeKey, PodHealthIcon} from '../utils';
+import {ResourceIcon} from '../../../components/resource/resource-icon';
+import {ResourceLabel} from '../../../components/resource/resource-label';
+import {ComparisonStatusIcon, isYoungerThanXMinutes, HealthStatusIcon, nodeKey, PodHealthIcon} from '../../resource-helpers';
 
 import './pod-view.scss';
 import {PodTooltip} from './pod-tooltip';

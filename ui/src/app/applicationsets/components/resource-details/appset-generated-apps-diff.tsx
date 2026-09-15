@@ -11,7 +11,7 @@ import './resource-details.scss';
 
 const ApplicationResourcesDiff = lazyWithBoundary(
     React.lazy(() =>
-        import(/* webpackChunkName: "app-resources-diff" */ '../../../applications/components/application-resources-diff/application-resources-diff').then(m => ({
+        import(/* webpackChunkName: "app-resources-diff" */ '../../../shared/components/resource/application-resources-diff/application-resources-diff').then(m => ({
             default: m.ApplicationResourcesDiff
         }))
     ),

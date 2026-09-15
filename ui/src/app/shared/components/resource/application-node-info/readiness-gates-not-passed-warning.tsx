@@ -1,5 +1,5 @@
 import * as React from 'react';
-import {selectPostfix} from '../utils';
+import {selectPostfix} from '../../resource-helpers';
 
 import './readiness-gates-not-passed-warning.scss';
 

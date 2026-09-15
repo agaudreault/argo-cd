@@ -1,4 +1,4 @@
-import {createMatcher} from './applications-list-search';
+import {createMatcher} from './list-search';
 
 describe('createMatcher', () => {
     describe('empty search', () => {
@@ -27,6 +27,11 @@ describe('createMatcher', () => {
 
         test('treats regex metacharacters as literals', () => {
             expect(createMatcher('^app', false)('app-prod-frontend', 'default')).toBe(false);
+        });
+
+        test('tolerates a missing (cluster-scoped) namespace', () => {
+            expect(createMatcher('cluster', false)('cluster-role', undefined)).toBe(true);
+            expect(createMatcher('role', false)('cluster-role', undefined)).toBe(true);
         });
     });
 
@@ -61,6 +66,10 @@ describe('createMatcher', () => {
             expect(matcher('app-one', 'default')).toBe(true);
             expect(matcher('app-two', 'default')).toBe(true);
             expect(matcher('guestbook', 'default')).toBe(false);
+        });
+
+        test('tolerates a missing (cluster-scoped) namespace', () => {
+            expect(createMatcher('^cluster', true)('cluster-role', undefined)).toBe(true);
         });
     });
 });

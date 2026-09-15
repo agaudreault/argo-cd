@@ -4,8 +4,8 @@ import {ApplicationTree, HealthStatusCode, HealthStatuses, SyncStatusCode, SyncS
 import {AppDetailsPreferences, services} from '../../../shared/services';
 import {Context} from '../../../shared/context';
 import {Filter, FiltersGroup} from '../filter/filter';
-import {ComparisonStatusIcon, HealthStatusIcon} from '../utils';
-import {resources} from '../resources';
+import {ComparisonStatusIcon, HealthStatusIcon} from '../resource-helpers';
+import {resources} from './resources';
 import * as models from '../../../shared/models';
 
 const uniq = (value: string, index: number, self: string[]) => self.indexOf(value) === index;

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as models from '../../../shared/models';
 import {COLORS} from '../../../shared/components/colors';
-import {Filter, FiltersGroup} from '../../../applications/components/filter/filter';
+import {Filter, FiltersGroup} from '../../../shared/components/filter/filter';
 import {capitalize, getFilterOptions} from '../list-filter-utils';
 
 export interface ReposListPreferences {

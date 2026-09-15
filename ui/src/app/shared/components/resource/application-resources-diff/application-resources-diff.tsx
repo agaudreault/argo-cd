@@ -4,8 +4,8 @@ import * as React from 'react';
 import {parseDiff} from 'react-diff-view';
 import 'react-diff-view/style/index.css';
 import {diffLines, formatLines} from 'unidiff';
-import * as models from '../../../shared/models';
-import {services} from '../../../shared/services';
+import * as models from '../../../models';
+import {services} from '../../../services';
 import {IndividualDiffSection} from './individual-diff-section';
 
 import './application-resources-diff.scss';

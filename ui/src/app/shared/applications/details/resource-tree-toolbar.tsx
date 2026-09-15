@@ -5,7 +5,7 @@ import * as React from 'react';
 import * as appModels from '../../../shared/models';
 import * as models from '../../../shared/models';
 import {AppDetailsPreferences} from '../../../shared/services';
-import * as AppUtils from '../../../applications/components/utils';
+import * as AppUtils from '../../components/resource-helpers';
 
 export interface ResourceTreeToolbarProps {
     pref: AppDetailsPreferences;

@@ -15,16 +15,16 @@ import {ApplicationConditions} from '../application-conditions/application-condi
 import {NoticeBanner} from '../application-notice/notice-banner';
 import {ApplicationDeploymentHistory} from '../application-deployment-history/application-deployment-history';
 import {ApplicationOperationState} from '../application-operation-state/application-operation-state';
-import {PodGroupType, PodView} from '../application-pod-view/pod-view';
-import {ApplicationResourceTree, type ResourceTreeNode} from '../application-resource-tree/application-resource-tree';
+import {PodGroupType, PodView} from '../../../shared/components/resource/application-pod-view/pod-view';
+import {ApplicationResourceTree, type ResourceTreeNode} from '../../../shared/components/resource/application-resource-tree/application-resource-tree';
 import {ApplicationStatusPanel} from '../application-status-panel/application-status-panel';
 import {ApplicationSyncPanel} from '../application-sync-panel/application-sync-panel';
 import {ResourceDetails} from '../resource-details/resource-details';
 import * as AppUtils from '../utils';
-import {ApplicationResourceList, ApplicationResourceParentRef} from './application-resource-list';
-import {APPLICATION_DETAILS_SORT_KEY, ApplicationResourceSortKey, compareApplicationResource, GROUPED_NODES_DETAILS_SORT_KEY} from './application-resource-sort';
+import {ApplicationResourceList, ApplicationResourceParentRef} from '../../../shared/components/resource/application-resource-list';
+import {APPLICATION_DETAILS_SORT_KEY, ApplicationResourceSortKey, compareApplicationResource, GROUPED_NODES_DETAILS_SORT_KEY} from '../../../shared/components/resource/application-resource-sort';
 import {useListSort} from '../../../shared/hooks/use-list-sort';
-import {getEffectiveResourceFilter} from './application-resource-filter';
+import {getEffectiveResourceFilter} from '../../../shared/components/resource/application-resource-filter';
 import {getAppDefaultSource, getAppCurrentVersion, urlPattern, getApplicationDetailsContainerClass} from '../utils';
 import {ChartDetails, OCIMetadata} from '../../../shared/models';
 import {ApplicationsDetailsAppDropdown} from './application-details-app-dropdown';
@@ -843,7 +843,7 @@ Are you sure you want to disable auto-sync and rollback application '${props.mat
                                                     title: 'Applications',
                                                     path: '/applications'
                                                 },
-                                                {title: <ApplicationsDetailsAppDropdown appName={props.match.params.name} objectListKind='application' />}
+                                                {title: <ApplicationsDetailsAppDropdown appName={props.match.params.name} />}
                                             ],
                                             actionMenu: {
                                                 items: [

@@ -1,5 +1,5 @@
 import {ContextApis} from '../../../shared/context';
-import {ResourceTreeNode} from '../../../applications/components/application-resource-tree/application-resource-tree';
+import {ResourceTreeNode} from '../../components/resource/application-resource-tree/application-resource-tree';
 
 // Shared node/URL and tree-filtering helpers used by both the Application and
 // ApplicationSet detail views. These are pure functions (no kind branching) so

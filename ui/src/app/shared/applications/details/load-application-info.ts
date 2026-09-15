@@ -3,7 +3,7 @@ import {filter, map, mergeMap, repeat, retry} from 'rxjs/operators';
 
 import * as appModels from '../../../shared/models';
 import {services} from '../../../shared/services';
-import {handlePageVisibility} from '../../../applications/components/utils';
+import {handlePageVisibility} from '../../components/resource-helpers';
 
 // loadApplicationInfo streams the resource (Application or ApplicationSet) and its
 // resource tree. The kind is a plain data argument to the services API, not a

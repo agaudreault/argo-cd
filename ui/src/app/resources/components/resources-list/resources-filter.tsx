@@ -5,7 +5,7 @@ import {HealthStatusCode, HealthStatuses, Resource, SyncStatusCode, SyncStatuses
 import {ResourcesListPreferences, services} from '../../../shared/services';
 import {getResourceClusterLabel} from '../../../shared/utils';
 import {resourceHealthStatus} from '../utils';
-import {Filter, FiltersGroup} from '../../../applications/components/filter/filter';
+import {Filter, FiltersGroup} from '../../../shared/components/filter/filter';
 import {ComparisonStatusIcon, HealthStatusIcon} from '../../../applications/components/utils';
 
 /** Sentinel namespace filter value for resources without a namespace (cluster-scoped). */

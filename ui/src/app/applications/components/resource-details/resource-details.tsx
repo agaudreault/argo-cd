@@ -12,19 +12,19 @@ import {Application, ApplicationTree, Event, ResourceNode, State, SyncStatuses} 
 import {services} from '../../../shared/services';
 import {ResourceTabExtension} from '../../../shared/services/extensions-service';
 import {NodeInfo, SelectNode} from '../application-details/application-details';
-import {ApplicationNodeInfo} from '../application-node-info/application-node-info';
+import {ApplicationNodeInfo} from '../../../shared/components/resource/application-node-info/application-node-info';
 import {ApplicationParameters} from '../application-parameters/application-parameters';
-import type {ResourceTreeNode} from '../application-resource-tree/application-resource-tree';
+import type {ResourceTreeNode} from '../../../shared/components/resource/application-resource-tree/application-resource-tree';
 import {ApplicationSummary} from '../application-summary/application-summary';
 import {AppSetResourceNodePreview} from '../../../applicationsets/components/resource-details/appset-resource-node-preview';
-import {ResourceIcon} from '../resource-icon';
-import {ResourceLabel} from '../resource-label';
+import {ResourceIcon} from '../../../shared/components/resource/resource-icon';
+import {ResourceLabel} from '../../../shared/components/resource/resource-label';
 import * as AppUtils from '../utils';
 import './resource-details.scss';
 
 const ApplicationResourcesDiff = lazyWithBoundary(
     React.lazy(() =>
-        import(/* webpackChunkName: "app-resources-diff" */ '../application-resources-diff/application-resources-diff').then(m => ({default: m.ApplicationResourcesDiff}))
+        import(/* webpackChunkName: "app-resources-diff" */ '../../../shared/components/resource/application-resources-diff/application-resources-diff').then(m => ({default: m.ApplicationResourcesDiff}))
     ),
     'Failed to load diff. Please reload and try again.'
 );

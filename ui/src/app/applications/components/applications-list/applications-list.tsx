@@ -14,7 +14,7 @@ import {ApplicationSyncPanel} from '../application-sync-panel/application-sync-p
 import {ApplicationsSyncPanel} from '../applications-sync-panel/applications-sync-panel';
 import * as AppUtils from '../utils';
 import {ApplicationsFilter, FilteredApp, getAppFilterResults} from './applications-filter';
-import {createMatcher} from './applications-list-search';
+import {createMatcher} from '../../../shared/components/list-search';
 import {showCreateFirstAppState} from './applications-list-empty-state';
 import {AppsStatusBar} from './applications-status-bar';
 import {ApplicationsTable} from './applications-table';

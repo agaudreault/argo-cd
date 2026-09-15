@@ -1,6 +1,6 @@
 import * as models from '../../../shared/models';
 import {HealthPriority, SyncPriority, SyncStatusCode} from '../../../shared/models';
-import {createdOrNodeKey} from '../utils';
+import {createdOrNodeKey} from '../resource-helpers';
 
 export type ApplicationResourceSortKey = 'name' | 'group-kind' | 'syncOrder' | 'namespace' | 'createdAt' | 'status';
 

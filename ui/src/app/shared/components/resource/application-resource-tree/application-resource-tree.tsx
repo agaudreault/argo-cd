@@ -5,14 +5,14 @@ import * as React from 'react';
 import Moment from 'react-moment';
 import * as moment from 'moment';
 
-import * as models from '../../../shared/models';
-import {isValidManagedByURL, MANAGED_BY_URL_INVALID_TEXT, MANAGED_BY_URL_INVALID_COLOR} from '../../../shared/utils';
+import * as models from '../../../models';
+import {isValidManagedByURL, MANAGED_BY_URL_INVALID_TEXT, MANAGED_BY_URL_INVALID_COLOR} from '../../../utils';
 
-import {EmptyState} from '../../../shared/components';
-import {AppContext, Consumer} from '../../../shared/context';
-import {ApplicationURLs} from '../application-urls';
-import {ResourceIcon} from '../resource-icon';
-import {ResourceLabel} from '../resource-label';
+import {EmptyState} from '../../../components';
+import {AppContext, Consumer} from '../../../context';
+import {ApplicationURLs} from '../../../components/resource/application-urls';
+import {ResourceIcon} from '../../../components/resource/resource-icon';
+import {ResourceLabel} from '../../../components/resource/resource-label';
 import {
     BASE_COLORS,
     ComparisonStatusIcon,
@@ -32,7 +32,7 @@ import {
     getApplicationLinkURLFromNode,
     getManagedByURLFromNode,
     formatResourceInfo
-} from '../utils';
+} from '../../resource-helpers';
 import {NodeUpdateAnimation} from './node-update-animation';
 import {PodGroup} from '../application-pod-view/pod-view';
 import './application-resource-tree.scss';

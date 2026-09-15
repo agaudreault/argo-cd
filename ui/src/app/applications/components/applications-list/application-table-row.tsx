@@ -5,7 +5,7 @@ import {ActionMenu, Cluster} from '../../../shared/components';
 import {AuthSettingsCtx, ContextApis} from '../../../shared/context';
 import * as models from '../../../shared/models';
 import {NoticeIcon} from '../application-notice/notice-icon';
-import {ApplicationURLs} from '../application-urls';
+import {ApplicationURLs} from '../../../shared/components/resource/application-urls';
 import * as AppUtils from '../utils';
 import {getAppDefaultSource, OperationState} from '../utils';
 import {ApplicationsLabels} from './applications-labels';
